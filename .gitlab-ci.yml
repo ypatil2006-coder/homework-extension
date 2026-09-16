@@ -12,6 +12,7 @@ validate-manifest:
   stage: test
   image: node:20-alpine
   script:
-    - node -e "const m = require('./manifest.json'); console.log('✅ Chrome Extension Manifest v' + m.manifest_version + ' is valid: ' + m.name + ' v' + m.version);"
+    - |
+      node -e "const m = require('./manifest.json'); console.log('Manifest v' + m.manifest_version + ' is valid: ' + m.name + ' v' + m.version);"
   rules:
     - if: $CI_COMMIT_BRANCH
