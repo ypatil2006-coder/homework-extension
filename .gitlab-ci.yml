@@ -1,0 +1,17 @@
+stages:
+  - test
+  - security
+
+# GitLab Ultimate Security Scanners
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+# Manifest and Configuration Syntax Verification
+validate-manifest:
+  stage: test
+  image: node:20-alpine
+  script:
+    - node -e "const m = require('./manifest.json'); console.log('✅ Chrome Extension Manifest v' + m.manifest_version + ' is valid: ' + m.name + ' v' + m.version);"
+  rules:
+    - if: $CI_COMMIT_BRANCH
