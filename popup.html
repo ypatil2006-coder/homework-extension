@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 280px; font-family: Arial; padding: 0; margin: 0; }
+    .banner { background: #1a1a2e; color: #00d4ff; text-align: center;
+              padding: 8px; font-size: 11px; font-weight: bold; }
+    .content { padding: 14px; }
+    label { font-weight: bold; font-size: 12px; display: block; margin-top: 12px; margin-bottom: 4px; }
+    select, input, textarea { width: 100%; padding: 6px; border-radius: 6px;
+                    border: 1px solid #ccc; font-size: 11px; box-sizing: border-box; resize: vertical; }
+    button { width: 100%; margin-top: 14px; padding: 8px;
+             background: #2196F3; color: white; border: none;
+             border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #1976D2; }
+    .hint { font-size: 10px; color: gray; text-align: center; margin-top: 8px; }
+    a { font-size: 11px; color: #2196F3; text-decoration: none; display: block;
+        margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="banner">Created by Yash Patil • Vibe Coded with Anthropic 🤖</div>
+  <div class="content">
+
+    <button id="snipBtn" style="background:#10b981; margin-top:0; margin-bottom:12px;">✂️ Start Snipping Now</button>
+
+    <label>AI Provider</label>
+    <select id="apiSelect">
+      <option value="Groq">Groq (Free)</option>
+      <option value="OpenAI">OpenAI (gpt-4o-mini)</option>
+      <option value="Claude">Claude (Haiku)</option>
+    </select>
+    <a id="apiLink" href="#" target="_blank">🔗 Get API Key</a>
+
+    <label>API Key(s) <span style="font-weight:normal; font-size:10px; color:#888;">(Comma or newline separated)</span></label>
+    <textarea id="apiKey" rows="2" placeholder="Paste multiple API keys (e.g. key1, key2)"></textarea>
+
+    <label>Model Override (Optional)</label>
+    <input type="text" id="modelInput" placeholder="e.g. llama-3.2-11b-vision-instruct" />
+
+    <a href="#" id="openShortcutsBtn" style="font-size:11px; color:#2196F3; font-weight:bold; display:block; margin-top:12px; margin-bottom:6px; text-align:center;">⚙️ Customize Keyboard Shortcut in Chrome</a>
+
+    <label>Subject Domain</label>
+    <select id="subjectSelect">
+      <option value="auto">🌐 Auto / General</option>
+      <option value="aptitude-reasoning">🧩 Aptitude, Logical Reasoning & Mathematics</option>
+      <option value="ai-finance">🤖 AI For Finance</option>
+      <option value="prob-stats">📊 Probability & Statistics</option>
+      <option value="backend-dev">⚙️ Backend Development</option>
+      <option value="communication">💬 Advanced Communication Skills</option>
+      <option value="dsa">⚡ Design & Analysis of Algorithms</option>
+    </select>
+
+    <label>Answer Style</label>
+    <select id="styleSelect">
+      <option value="detailed">📝 Detailed Answer</option>
+      <option value="short">⚡ Short Answer</option>
+      <option value="mcq">🔘 MCQ — Correct Option Only</option>
+    </select>
+
+    <label style="display: flex; align-items: center; gap: 8px; margin-top: 14px; cursor: pointer;">
+      <input type="checkbox" id="autoSelectCb" style="width: auto; margin: 0;" />
+      <span>⚡ Auto-Select Correct Answer on Page</span>
+    </label>
+
+    <button id="saveBtn">💾 Save Settings</button>
+
+    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed #ccc;">
+      <div style="font-size: 11px; font-weight: bold; color: #555; margin-bottom: 6px;">🔑 Backup & Transfer Keys</div>
+      <div style="display: flex; gap: 6px;">
+        <button id="exportKeysBtn" style="margin-top: 0; padding: 6px; font-size: 11px; background: #6366f1;">📤 Copy All Keys</button>
+        <button id="importKeysBtn" style="margin-top: 0; padding: 6px; font-size: 11px; background: #475569;">📥 Restore Keys</button>
+      </div>
+      <div id="backupStatus" style="font-size: 10px; color: #10b981; text-align: center; margin-top: 4px; min-height: 14px;"></div>
+    </div>
+
+    <div class="hint">Customize your shortcut in settings above or Chrome Extension Shortcuts 🎯</div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

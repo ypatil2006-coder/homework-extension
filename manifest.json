@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Homework Solver",
+  "version": "1.0",
+  "description": "Created by Yash Patil • Vibe Coded with Anthropic",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "activate-snip": {
+      "suggested_key": {
+        "default": "Alt+C"
+      },
+      "description": "Activate snipping tool"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ]
+}
