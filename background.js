@@ -1,3 +1,19 @@
+const DEFAULT_GROQ_KEYS = "";
+
+function initDefaultKeys() {
+  chrome.storage.local.get(["keys"], (data) => {
+    const keys = data.keys || {};
+    if (!keys.Groq && DEFAULT_GROQ_KEYS) {
+      keys.Groq = DEFAULT_GROQ_KEYS;
+      chrome.storage.local.set({ keys });
+    }
+  });
+}
+
+chrome.runtime.onInstalled.addListener(initDefaultKeys);
+chrome.runtime.onStartup.addListener(initDefaultKeys);
+initDefaultKeys();
+
 chrome.commands.onCommand.addListener((command) => {
   if (command === "activate-snip") {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -7,6 +23,19 @@ chrome.commands.onCommand.addListener((command) => {
             chrome.scripting.executeScript({
               target: { tabId: tabs[0].id },
               func: () => { window.dispatchEvent(new CustomEvent("hs-start-snip")); }
+            });
+          }
+        });
+      }
+    });
+  } else if (command === "close-overlay") {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs && tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "closeOverlayAndDot" }, () => {
+          if (chrome.runtime.lastError) {
+            chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              func: () => { window.dispatchEvent(new CustomEvent("hs-close-overlay-and-dot")); }
             });
           }
         });
@@ -94,23 +123,13 @@ chrome.runtime.onConnect.addListener((port) => {
 
             try {
               const j = JSON.parse(d);
-              let delta = "";
-              if (provider === "Claude") {
-                if (j.type === "content_block_delta" && j.delta?.text) {
-                  delta = j.delta.text;
-                }
-                if (j.type === "message_delta" && j.delta?.stop_reason) {
-                  finishReason = j.delta.stop_reason;
-                }
-              } else {
-                const choice = j.choices?.[0];
-                delta = choice?.delta?.content || "";
-                if (!delta && (choice?.delta?.reasoning || choice?.delta?.reasoning_content)) {
-                  delta = choice?.delta?.reasoning || choice?.delta?.reasoning_content;
-                }
-                if (choice?.finish_reason) {
-                  finishReason = choice.finish_reason;
-                }
+              const choice = j.choices?.[0];
+              delta = choice?.delta?.content || "";
+              if (!delta && (choice?.delta?.reasoning || choice?.delta?.reasoning_content)) {
+                delta = choice?.delta?.reasoning || choice?.delta?.reasoning_content;
+              }
+              if (choice?.finish_reason) {
+                finishReason = choice.finish_reason;
               }
 
               if (delta) {

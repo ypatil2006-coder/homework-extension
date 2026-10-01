@@ -18,12 +18,22 @@
   "action": {
     "default_popup": "popup.html"
   },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
   "commands": {
     "activate-snip": {
       "suggested_key": {
         "default": "Alt+C"
       },
       "description": "Activate snipping tool"
+    },
+    "close-overlay": {
+      "suggested_key": {
+        "default": "Alt+D"
+      },
+      "description": "Close answer panel and overlay"
     }
   },
   "content_scripts": [

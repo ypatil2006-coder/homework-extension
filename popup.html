@@ -1,82 +1,280 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
   <style>
-    body { width: 280px; font-family: Arial; padding: 0; margin: 0; }
-    .banner { background: #1a1a2e; color: #00d4ff; text-align: center;
-              padding: 8px; font-size: 11px; font-weight: bold; }
-    .content { padding: 14px; }
-    label { font-weight: bold; font-size: 12px; display: block; margin-top: 12px; margin-bottom: 4px; }
-    select, input, textarea { width: 100%; padding: 6px; border-radius: 6px;
-                    border: 1px solid #ccc; font-size: 11px; box-sizing: border-box; resize: vertical; }
-    button { width: 100%; margin-top: 14px; padding: 8px;
-             background: #2196F3; color: white; border: none;
-             border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
-    button:hover { background: #1976D2; }
-    .hint { font-size: 10px; color: gray; text-align: center; margin-top: 8px; }
-    a { font-size: 11px; color: #2196F3; text-decoration: none; display: block;
-        margin-top: 4px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 295px;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: 
+        radial-gradient(ellipse 90% 70% at 10% 10%, rgba(255, 255, 255, 0.85), transparent 70%),
+        linear-gradient(140deg, #f8f3ec 0%, #eee3d5 50%, #e4d5c1 100%);
+      color: #26160d;
+      padding: 0;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header {
+      background: rgba(255, 252, 248, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 13px 15px;
+      border-bottom: 1px solid rgba(184, 158, 134, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 6px rgba(92, 65, 43, 0.04);
+    }
+    .title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 14.5px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: #26160d;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .badge {
+      background: rgba(205, 82, 30, 0.1);
+      color: #9e3d17;
+      border: 1px solid rgba(205, 82, 30, 0.25);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.3px;
+    }
+    .content {
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+    .snip-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #a45a2a 0%, #87431b 100%);
+      color: #fffaf5;
+      border: none;
+      border-radius: 9px;
+      padding: 11px 14px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(135, 67, 27, 0.28);
+      transition: all 0.18s ease;
+    }
+    .snip-btn:hover {
+      background: linear-gradient(135deg, #b3632e 0%, #94491d 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(135, 67, 27, 0.35);
+    }
+    .snip-btn:active {
+      transform: translateY(0);
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6a5040;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+    select {
+      width: 100%;
+      padding: 9px 11px;
+      background: rgba(255, 255, 255, 0.85);
+      color: #26160d;
+      border: 1px solid rgba(184, 158, 134, 0.4);
+      border-radius: 8px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 12.5px;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: inset 0 1px 2px rgba(92, 65, 43, 0.03);
+    }
+    select:focus {
+      border-color: #9b5329;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(155, 83, 41, 0.18);
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 252, 248, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(184, 158, 134, 0.35);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .toggle-row:hover {
+      background: rgba(255, 255, 255, 0.9);
+    }
+    .toggle-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #3b281c;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    /* Switch Style */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 21px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(184, 158, 134, 0.4);
+      transition: .2s ease;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 15px;
+      width: 15px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .2s ease;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(92, 65, 43, 0.2);
+    }
+    input:checked + .slider {
+      background-color: #9b5329;
+    }
+    input:checked + .slider:before {
+      transform: translateX(15px);
+    }
+    .more-settings-btn {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.85);
+      color: #563e30;
+      border: 1px solid rgba(184, 158, 134, 0.45);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 4px rgba(92, 65, 43, 0.05);
+      margin-top: 2px;
+    }
+    .more-settings-btn:hover {
+      background: #ffffff;
+      color: #26160d;
+      border-color: rgba(184, 158, 134, 0.7);
+      transform: translateY(-1px);
+    }
+    .footer {
+      padding: 9px 15px 11px;
+      text-align: center;
+      font-size: 11px;
+      color: #826a58;
+      border-top: 1px solid rgba(184, 158, 134, 0.25);
+    }
+    .footer kbd {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(184, 158, 134, 0.45);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: #9b5329;
+    }
   </style>
 </head>
 <body>
-  <div class="banner">Created by Yash Patil • Vibe Coded with Anthropic 🤖</div>
+  <div class="header">
+    <div class="title">
+      <span>📚 Homework Solver</span>
+    </div>
+    <span class="badge">Groq ⚡</span>
+  </div>
+
   <div class="content">
+    <button id="snipBtn" class="snip-btn" type="button">
+      <span>✂️ Start Snipping</span>
+    </button>
 
-    <button id="snipBtn" style="background:#10b981; margin-top:0; margin-bottom:12px;">✂️ Start Snipping Now</button>
-
-    <label>AI Provider</label>
-    <select id="apiSelect">
-      <option value="Groq">Groq (Free)</option>
-      <option value="OpenAI">OpenAI (gpt-4o-mini)</option>
-      <option value="Claude">Claude (Haiku)</option>
-    </select>
-    <a id="apiLink" href="#" target="_blank">🔗 Get API Key</a>
-
-    <label>API Key(s) <span style="font-weight:normal; font-size:10px; color:#888;">(Comma or newline separated)</span></label>
-    <textarea id="apiKey" rows="2" placeholder="Paste multiple API keys (e.g. key1, key2)"></textarea>
-
-    <label>Model Override (Optional)</label>
-    <input type="text" id="modelInput" placeholder="e.g. llama-3.2-11b-vision-instruct" />
-
-    <a href="#" id="openShortcutsBtn" style="font-size:11px; color:#2196F3; font-weight:bold; display:block; margin-top:12px; margin-bottom:6px; text-align:center;">⚙️ Customize Keyboard Shortcut in Chrome</a>
-
-    <label>Subject Domain</label>
-    <select id="subjectSelect">
-      <option value="auto">🌐 Auto / General</option>
-      <option value="aptitude-reasoning">🧩 Aptitude, Logical Reasoning & Mathematics</option>
-      <option value="ai-finance">🤖 AI For Finance</option>
-      <option value="prob-stats">📊 Probability & Statistics</option>
-      <option value="backend-dev">⚙️ Backend Development</option>
-      <option value="communication">💬 Advanced Communication Skills</option>
-      <option value="dsa">⚡ Design & Analysis of Algorithms</option>
-    </select>
-
-    <label>Answer Style</label>
-    <select id="styleSelect">
-      <option value="detailed">📝 Detailed Answer</option>
-      <option value="short">⚡ Short Answer</option>
-      <option value="mcq">🔘 MCQ — Correct Option Only</option>
-    </select>
-
-    <label style="display: flex; align-items: center; gap: 8px; margin-top: 14px; cursor: pointer;">
-      <input type="checkbox" id="autoSelectCb" style="width: auto; margin: 0;" />
-      <span>⚡ Auto-Select Correct Answer on Page</span>
-    </label>
-
-    <button id="saveBtn">💾 Save Settings</button>
-
-    <div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed #ccc;">
-      <div style="font-size: 11px; font-weight: bold; color: #555; margin-bottom: 6px;">🔑 Backup & Transfer Keys</div>
-      <div style="display: flex; gap: 6px;">
-        <button id="exportKeysBtn" style="margin-top: 0; padding: 6px; font-size: 11px; background: #6366f1;">📤 Copy All Keys</button>
-        <button id="importKeysBtn" style="margin-top: 0; padding: 6px; font-size: 11px; background: #475569;">📥 Restore Keys</button>
-      </div>
-      <div id="backupStatus" style="font-size: 10px; color: #10b981; text-align: center; margin-top: 4px; min-height: 14px;"></div>
+    <div class="field-group">
+      <label for="subjectSelect">Subject Domain</label>
+      <select id="subjectSelect">
+        <option value="auto">🌐 Auto / General</option>
+        <option value="aptitude-reasoning">🧩 Aptitude & Logical Reasoning</option>
+        <option value="prob-stats">📊 Probability & Statistics</option>
+        <option value="dsa">⚡ Algorithms & Data Structures</option>
+        <option value="backend-dev">⚙️ Backend Development</option>
+        <option value="ai-finance">🤖 AI For Finance</option>
+        <option value="communication">💬 Verbal & Communication</option>
+      </select>
     </div>
 
-    <div class="hint">Customize your shortcut in settings above or Chrome Extension Shortcuts 🎯</div>
+    <div class="field-group">
+      <label for="styleSelect">Answer Style</label>
+      <select id="styleSelect">
+        <option value="detailed">📝 Detailed Step-by-Step</option>
+        <option value="short">⚡ Short (Why + Answer)</option>
+        <option value="mcq">🔘 MCQ — Correct Option Only</option>
+      </select>
+    </div>
 
+    <label class="toggle-row" for="autoSelectCb">
+      <span class="toggle-label">
+        <span>⚡ Auto-Select on Page</span>
+      </span>
+      <span class="switch">
+        <input type="checkbox" id="autoSelectCb">
+        <span class="slider"></span>
+      </span>
+    </label>
+
+    <button id="openSettingsBtn" class="more-settings-btn" type="button">
+      <span>⚙️ More Settings (New Tab) ↗</span>
+    </button>
   </div>
+
+  <div class="footer">
+    Shortcut: <kbd>Alt</kbd> + <kbd>C</kbd> to snip anytime
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Homework Solver — Settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Acrylic Sand Canvas */
+      --sand-bg-start: #f8f3ec;
+      --sand-bg-mid: #ede3d4;
+      --sand-bg-end: #e3d4c0;
+      
+      /* Acrylic Glass Tokens */
+      --glass-surface: rgba(255, 252, 248, 0.78);
+      --glass-surface-subtle: rgba(246, 240, 230, 0.68);
+      --glass-border: rgba(255, 255, 255, 0.92);
+      --glass-border-subtle: rgba(184, 158, 134, 0.28);
+      --glass-shadow: 0 14px 40px -8px rgba(92, 65, 43, 0.09), 0 4px 14px rgba(92, 65, 43, 0.04);
+      --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      --glass-blur: blur(24px) saturate(180%);
+
+      /* Brown Typography Palette */
+      --text-primary: #26160d;     /* Deep roasted espresso / darkest warm walnut */
+      --text-secondary: #563e30;   /* Rich warm hazelnut brown */
+      --text-muted: #826a58;       /* Toasted sand mocha */
+      --text-faint: #a69180;       /* Soft warm taupe */
+
+      /* Warm Terracotta Bronze Accents */
+      --primary: #9b5329;          /* Rich warm bronze terracotta */
+      --primary-hover: #83421d;
+      --primary-glow: rgba(155, 83, 41, 0.2);
+      
+      /* Groq Amber / Paprika Badge */
+      --groq-pill-bg: rgba(205, 82, 30, 0.09);
+      --groq-pill-text: #9e3d17;
+      --groq-pill-border: rgba(205, 82, 30, 0.24);
+
+      /* Natural Status Colors */
+      --success: #267344;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --radius: 14px;
+
+      /* Premium Font Stacks */
+      --font-display: 'Playfair Display', 'Iowan Old Style', 'Palatino Linotype', 'Georgia', serif;
+      --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-ui);
+      background: 
+        radial-gradient(ellipse 80% 50% at 15% 10%, rgba(255, 255, 255, 0.9), transparent 70%),
+        radial-gradient(ellipse 70% 60% at 85% 85%, rgba(227, 212, 192, 0.7), transparent 70%),
+        linear-gradient(140deg, var(--sand-bg-start) 0%, var(--sand-bg-mid) 48%, var(--sand-bg-end) 100%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      line-height: 1.55;
+      padding: 36px 16px 96px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    /* Header */
+    .header-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      background: var(--glass-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      box-shadow: var(--glass-shadow), var(--glass-inset);
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-title h1 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: var(--text-primary);
+      line-height: 1.25;
+    }
+    .header-title p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-weight: 400;
+    }
+    .provider-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: var(--groq-pill-bg);
+      border: 1px solid var(--groq-pill-border);
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      color: var(--groq-pill-text);
+      text-transform: uppercase;
+      box-shadow: 0 1px 3px rgba(158, 61, 23, 0.06);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--glass-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-shadow: var(--glass-shadow), var(--glass-inset);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+      box-shadow: 0 18px 46px -8px rgba(92, 65, 43, 0.12), 0 6px 18px rgba(92, 65, 43, 0.05), var(--glass-inset);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--glass-border-subtle);
+      padding-bottom: 14px;
+    }
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 17.5px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--text-primary);
+    }
+    .link-btn {
+      font-family: var(--font-ui);
+      font-size: 12.5px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+    .link-btn:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
+      transform: translateX(2px);
+    }
+
+    /* Form Fields */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .field-hint {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    input[type="text"], select, textarea {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(184, 158, 134, 0.38);
+      border-radius: 9px;
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      font-size: 13.5px;
+      font-weight: 500;
+      padding: 11px 13px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      box-shadow: inset 0 1px 2px rgba(92, 65, 43, 0.03);
+    }
+    input[type="text"]::placeholder, textarea::placeholder {
+      color: var(--text-faint);
+    }
+    input[type="text"]:focus, select:focus, textarea:focus {
+      background: rgba(255, 255, 255, 0.98);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow), inset 0 1px 2px rgba(92, 65, 43, 0.03);
+    }
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+
+    /* Switch Component */
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--glass-surface-subtle);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .switch-row:hover {
+      background: rgba(255, 255, 255, 0.88);
+      border-color: rgba(184, 158, 134, 0.5);
+    }
+    .switch-info h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .switch-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(184, 158, 134, 0.38);
+      transition: .25s ease;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s ease;
+      border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(92, 65, 43, 0.2);
+    }
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+    input:checked + .slider:before {
+      transform: translateX(18px);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 18px;
+      font-family: var(--font-ui);
+      font-size: 13.5px;
+      font-weight: 600;
+      border-radius: 9px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--text-secondary);
+      border: 1px solid rgba(184, 158, 134, 0.45);
+      box-shadow: 0 2px 6px rgba(92, 65, 43, 0.05);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 1);
+      color: var(--text-primary);
+      border-color: rgba(184, 158, 134, 0.65);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(92, 65, 43, 0.08);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #a45a2a 0%, #87431b 100%);
+      color: #fffaf5;
+      box-shadow: 0 4px 14px rgba(135, 67, 27, 0.28);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #b3632e 0%, #94491d 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(135, 67, 27, 0.34);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    /* Key Test Results Container */
+    #keyTestResults {
+      display: none;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 9px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      max-height: 180px;
+      overflow-y: auto;
+      box-shadow: inset 0 1px 3px rgba(92, 65, 43, 0.03);
+    }
+
+    /* Cursor Preview Box */
+    .cursor-preview-box {
+      background: var(--glass-surface-subtle);
+      border: 1.5px dashed rgba(184, 158, 134, 0.5);
+      border-radius: 10px;
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      cursor: crosshair;
+    }
+    .cursor-preview-box:hover {
+      border-color: var(--primary);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--primary);
+    }
+
+    /* Keyboard Shortcuts Table */
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .shortcut-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--glass-border-subtle);
+      color: var(--text-secondary);
+    }
+    .shortcut-table tr:last-child td {
+      border-bottom: none;
+    }
+    kbd {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(184, 158, 134, 0.45);
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--primary);
+      box-shadow: 0 1px 2px rgba(92, 65, 43, 0.06);
+    }
+
+    /* Sticky Bottom Bar */
+    .save-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(247, 241, 233, 0.88);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-top: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 -4px 20px rgba(92, 65, 43, 0.06);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: center;
+      z-index: 100;
+    }
+    .save-bar-content {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .save-status {
+      font-size: 13px;
+      color: var(--success);
+      font-weight: 600;
+      min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <div class="header-card">
+      <div class="header-title">
+        <span style="font-size: 28px;">📚</span>
+        <div>
+          <h1>Homework Solver — Settings</h1>
+          <p>Configure Groq AI keys, model overrides, and solver preferences.</p>
+        </div>
+      </div>
+      <div class="provider-pill">
+        <span>⚡ Groq Dedicated</span>
+      </div>
+    </div>
+
+    <!-- Groq AI Keys Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🔑 Groq API Keys & Model</span>
+        </div>
+        <a class="link-btn" href="https://console.groq.com/keys" target="_blank">
+          <span>Get Free Groq Key ↗</span>
+        </a>
+      </div>
+
+      <div class="field">
+        <label for="apiKey">
+          <span>API Key(s)</span>
+          <span class="field-hint" id="keyCountHint">Comma or newline separated</span>
+        </label>
+        <textarea id="apiKey" placeholder="Paste your Groq API key(s) here (starts with gsk_...)"></textarea>
+        <p class="field-hint">💡 Pro-tip: Add multiple free Groq keys separated by newlines for automatic round-robin rotation to avoid rate limits.</p>
+      </div>
+
+      <div class="field">
+        <label for="modelInput">
+          <span>Model Override (Optional)</span>
+          <span class="field-hint">Default: qwen/qwen3.8-27b</span>
+        </label>
+        <input type="text" id="modelInput" list="modelSuggestions" placeholder="e.g. qwen/qwen3.8-27b">
+        <datalist id="modelSuggestions">
+          <option value="qwen/qwen3.8-27b">
+        </datalist>
+      </div>
+
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <button id="testKeysBtn" class="btn btn-secondary" type="button">
+          <span>⚡ Test Keys Now</span>
+        </button>
+      </div>
+
+      <div id="keyTestResults"></div>
+    </div>
+
+    <!-- Default Behavior Preferences -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🎯 Default Solver Preferences</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="subjectSelect">Default Subject Domain</label>
+        <select id="subjectSelect">
+          <option value="auto">🌐 Auto / General</option>
+          <option value="aptitude-reasoning">🧩 Aptitude, Logical Reasoning & Math</option>
+          <option value="prob-stats">📊 Probability & Statistics</option>
+          <option value="dsa">⚡ Algorithms & Data Structures</option>
+          <option value="backend-dev">⚙️ Backend Development</option>
+          <option value="ai-finance">🤖 AI For Finance</option>
+          <option value="communication">💬 Verbal & Advanced Communication</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="styleSelect">Default Answer Style</label>
+        <select id="styleSelect">
+          <option value="detailed">📝 Detailed Step-by-Step Breakdown</option>
+          <option value="short">⚡ Short (Why + Final Answer)</option>
+          <option value="mcq">🔘 MCQ — Correct Option Only</option>
+        </select>
+      </div>
+
+      <label class="switch-row" for="autoSelectCb">
+        <div class="switch-info">
+          <h4>⚡ Auto-Select Correct Answer on Page</h4>
+          <p>Automatically detects and checks the correct radio/checkbox on quiz portals.</p>
+        </div>
+        <span class="switch">
+          <input type="checkbox" id="autoSelectCb">
+          <span class="slider"></span>
+        </span>
+      </label>
+    </div>
+
+    <!-- Snipping Tool & Cursor Preferences -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🎯 Snipping Tool & Cursor Style</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="cursorPresetSelect">Snipping Cursor Preset</label>
+        <select id="cursorPresetSelect">
+          <option value="crosshair">➕ Crosshair (Default — Precision Reticle)</option>
+          <option value="default">↖ Default Cursor (Standard Arrow)</option>
+          <option value="custom">✨ Custom Precision Reticle / URL</option>
+        </select>
+        <p class="field-hint">Choose the pointer style displayed across the screen while selecting an area to solve.</p>
+      </div>
+
+      <div class="field" id="customCursorField" style="display: none;">
+        <label for="customCursorUrlInput">
+          <span>Custom Cursor Image URL (Optional)</span>
+          <span class="field-hint">PNG, SVG, or CUR (32x32 recommended)</span>
+        </label>
+        <input type="text" id="customCursorUrlInput" placeholder="https://example.com/cursor.png (Leave blank for Neon Cyan Reticle)">
+        <p class="field-hint">Leave blank to use our built-in high-contrast Neon Cyan Sniper Reticle.</p>
+      </div>
+
+      <div class="cursor-preview-box" id="cursorPreviewArea">
+        <span id="cursorPreviewText">Hover inside this box to test the active snipping cursor!</span>
+      </div>
+    </div>
+
+    <!-- Shortcuts & Controls -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>⌨️ Keyboard & Mouse Controls</span>
+        </div>
+        <a id="openShortcutsBtn" class="link-btn" href="#">
+          <span>Customize in Chrome ↗</span>
+        </a>
+      </div>
+
+      <table class="shortcut-table">
+        <tr>
+          <td><kbd>Alt</kbd> + <kbd>C</kbd></td>
+          <td>Activate drag-and-crop snipping tool immediately on any tab</td>
+        </tr>
+        <tr>
+          <td><kbd>Alt</kbd> + <kbd>D</kbd></td>
+          <td>Close floating answer panel & overlays</td>
+        </tr>
+        <tr>
+          <td><kbd>Right-Click</kbd> or <kbd>Esc</kbd></td>
+          <td>Cancel snipping mode instantly while selecting</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Backup & Restore -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>📦 Backup & Transfer</span>
+        </div>
+      </div>
+      <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+        Easily export your configured keys and settings to JSON, or restore them onto another device or browser profile.
+      </p>
+      <div style="display: flex; gap: 10px;">
+        <button id="exportKeysBtn" class="btn btn-secondary" type="button">
+          <span>📤 Copy Backup JSON</span>
+        </button>
+        <button id="importKeysBtn" class="btn btn-secondary" type="button">
+          <span>📥 Restore from Backup</span>
+        </button>
+      </div>
+      <div id="backupStatus" style="font-size: 11.5px; min-height: 14px;"></div>
+    </div>
+
+  </div>
+
+  <!-- Sticky Bottom Save Bar -->
+  <div class="save-bar">
+    <div class="save-bar-content">
+      <div id="saveStatus" class="save-status"></div>
+      <div style="display: flex; gap: 10px;">
+        <button id="resetDefaultsBtn" class="btn btn-secondary" type="button">Reset to Defaults</button>
+        <button id="saveBtn" class="btn btn-primary" type="button">💾 Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
