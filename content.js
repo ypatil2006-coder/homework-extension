@@ -33,19 +33,385 @@ function getSnipCursorCss() {
   return "crosshair";
 }
 
+let currentSnipThemeMode = "default";
+let currentSnipCustomTheme = "catppuccin-mocha";
+let currentAnswerThemeMode = "default";
+let currentAnswerCustomTheme = "catppuccin-mocha";
+let currentSplitAnswerTheme = false;
+
+let currentSnipDimming = 15;
+let currentSnipBorderThickness = 2; // Supports 0px absolute zero
+let currentSnipFillOpacity = 12;
+let currentSnipBorderStyle = "dashed";
+let currentSnipBorderGlow = true;
+let currentSnipShowHint = true;
+
+let currentAnswerStealthMode = false;
+let currentAnswerBorderThickness = 1; // Supports 0px absolute zero
+let currentAnswerBorderRadius = 14;
+let currentAnswerWidth = 350;
+let currentAnswerOpacity = 98;
+let currentAnswerBlur = 14;
+let currentAnswerFontSize = 13;
+let currentAnswerBorderStyle = "solid";
+let currentAnswerDragBar = true;
+let currentAnswerAutoCopy = false;
+
+let currentAnswerCustomColorEnabled = false;
+let currentAnswerCustomBgColor = "#181825";
+let currentAnswerCustomTextColor = "#cdd6f4";
+let currentAnswerCustomBorderColor = "#89b4fa";
+
+function colorWithAlpha(colorStr, alpha) {
+  if (alpha <= 0) return "transparent";
+  if (!colorStr) return `rgba(0, 0, 0, ${alpha})`;
+  colorStr = colorStr.trim();
+  if (colorStr.startsWith("#")) {
+    let hex = colorStr.slice(1);
+    if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
+    const r = parseInt(hex.slice(0, 2), 16) || 0;
+    const g = parseInt(hex.slice(2, 4), 16) || 0;
+    const b = parseInt(hex.slice(4, 6), 16) || 0;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  if (colorStr.startsWith("rgb")) {
+    const parts = colorStr.match(/[\d.]+/g);
+    if (parts && parts.length >= 3) {
+      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+    }
+  }
+  return colorStr;
+}
+
+function getAnswerEffectiveInp() {
+  const base = activeAnswerConfig.inpage;
+  if (currentAnswerStealthMode) {
+    return {
+      ...base,
+      overlayBg: "transparent",
+      overlayBorder: "transparent",
+      overlayShadow: "none",
+      overlayTextPrimary: "#000000",
+      overlayTextSecondary: "#111111",
+      overlayTextMuted: "#333333",
+      cardBg: "transparent",
+      cardBorder: "transparent",
+      cardLabel: "#000000",
+      cardValue: "#000000",
+      buttonBg: "transparent",
+      buttonBorder: "transparent",
+      buttonText: "#000000",
+      buttonHoverBg: "transparent",
+      buttonHoverBorder: "transparent",
+      buttonHoverText: "#000000",
+      spinnerColor: "#000000"
+    };
+  }
+  if (currentAnswerCustomColorEnabled) {
+    const bg = currentAnswerCustomBgColor || "#181825";
+    const text = currentAnswerCustomTextColor || "#cdd6f4";
+    const border = currentAnswerCustomBorderColor || "#89b4fa";
+    return {
+      ...base,
+      overlayBg: bg,
+      overlayBorder: border,
+      overlayShadow: `0 4px 20px 0 ${colorWithAlpha(border, 0.15)}, inset 0 0 0 1px ${colorWithAlpha(border, 0.25)}`,
+      overlayTextPrimary: text,
+      overlayTextSecondary: colorWithAlpha(text, 0.82),
+      overlayTextMuted: colorWithAlpha(text, 0.60),
+      cardBg: colorWithAlpha(border, 0.08),
+      cardBorder: border,
+      cardLabel: border,
+      cardValue: text,
+      buttonBg: colorWithAlpha(border, 0.12),
+      buttonBorder: colorWithAlpha(border, 0.40),
+      buttonText: text,
+      buttonHoverBg: colorWithAlpha(border, 0.25),
+      buttonHoverBorder: border,
+      buttonHoverText: text,
+      spinnerColor: border
+    };
+  }
+  return base;
+}
+
+function getAnswerBoxBorderCss(inp) {
+  if (currentAnswerStealthMode) {
+    return "none";
+  }
+  if (currentAnswerBorderThickness <= 0 || currentAnswerBorderStyle === "none") {
+    return "none";
+  }
+  return `${currentAnswerBorderThickness}px ${currentAnswerBorderStyle} ${inp.overlayBorder}`;
+}
+
+function getAnswerBoxBg(inp) {
+  if (currentAnswerStealthMode) {
+    return "transparent";
+  }
+  const bgAlpha = Math.max(0, Math.min(100, currentAnswerOpacity)) / 100;
+  return (bgAlpha < 1.0) ? colorWithAlpha(inp.overlayBg, bgAlpha) : inp.overlayBg;
+}
+
+function getAnswerBoxBlurCss() {
+  if (currentAnswerStealthMode) {
+    return "blur(2px)";
+  }
+  const blurPx = Math.max(0, Math.min(40, currentAnswerBlur));
+  return (blurPx <= 0) ? "none" : `blur(${blurPx}px)`;
+}
+
+const defaultThemeObj = (typeof HS_THEMES !== "undefined" && HS_THEMES["default"]) ? HS_THEMES["default"] : {
+  inpage: {
+    snipOverlayBg: "rgba(0, 0, 0, 0.08)",
+    snipBorder: "#9b5329",
+    snipSelectionBg: "rgba(155, 83, 41, 0.1)",
+    snipBoxShadow: "0 0 14px rgba(155, 83, 41, 0.22)",
+    snipHintBg: "rgba(254, 250, 245, 0.94)",
+    snipHintBorder: "rgba(184, 158, 134, 0.55)",
+    snipHintShadow: "0 6px 20px rgba(92, 65, 43, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9)",
+    snipHintText: "#4a2815",
+    overlayBg: "rgba(246, 241, 235, 0.90)",
+    overlayBorder: "rgba(184, 158, 134, 0.45)",
+    overlayShadow: "0 4px 20px 0 rgba(74, 44, 17, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.5)",
+    overlayTextPrimary: "#3b2210",
+    overlayTextSecondary: "#5a4230",
+    overlayTextMuted: "#786959",
+    cardBg: "rgba(255, 255, 255, 0.5)",
+    cardBorder: "#b85d19",
+    cardLabel: "#87431b",
+    cardValue: "#3b2210",
+    spinnerColor: "#b85d19",
+    buttonBg: "rgba(255, 255, 255, 0.75)",
+    buttonBorder: "rgba(184, 158, 134, 0.55)",
+    buttonText: "#87431b",
+    buttonHoverBg: "rgba(255, 255, 255, 0.95)",
+    buttonHoverBorder: "#87431b",
+    buttonHoverText: "#6d3314",
+    badgeSuccess: "#2e6930",
+    badgeWarning: "#b45309",
+    copySuccess: "#2e6930"
+  }
+};
+
+let activeSnipConfig = defaultThemeObj;
+let activeAnswerConfig = defaultThemeObj;
+
+function updateActiveThemeConfigs(data) {
+  if (!data) return;
+  if (data.snipThemeMode !== undefined) currentSnipThemeMode = data.snipThemeMode;
+  else if (data.themeMode !== undefined) currentSnipThemeMode = data.themeMode;
+
+  if (data.snipCustomTheme !== undefined) currentSnipCustomTheme = data.snipCustomTheme;
+  else if (data.customTheme !== undefined) currentSnipCustomTheme = data.customTheme;
+
+  if (data.answerThemeMode !== undefined) currentAnswerThemeMode = data.answerThemeMode;
+  else if (data.splitAnswerTheme !== undefined) currentAnswerThemeMode = data.splitAnswerTheme ? "customized" : "default";
+  else if (data.themeMode !== undefined) currentAnswerThemeMode = data.themeMode;
+
+  if (data.answerCustomTheme !== undefined) currentAnswerCustomTheme = data.answerCustomTheme;
+  else if (data.customTheme !== undefined) currentAnswerCustomTheme = data.customTheme;
+
+  if (typeof HS_resolveActiveTheme === "function") {
+    activeSnipConfig = HS_resolveActiveTheme(currentSnipThemeMode, currentSnipCustomTheme);
+    activeAnswerConfig = HS_resolveActiveTheme(currentAnswerThemeMode, currentAnswerCustomTheme);
+  }
+}
+
+function rethemeLiveAnswerOverlay() {
+  const box = document.getElementById("hs-answer-overlay");
+  if (!box) return;
+  const inp = getAnswerEffectiveInp();
+
+  if (currentAnswerStealthMode) {
+    box.classList.add("hs-stealth-mode");
+  } else {
+    box.classList.remove("hs-stealth-mode");
+  }
+
+  box.style.background = getAnswerBoxBg(inp);
+  const blurVal = getAnswerBoxBlurCss();
+  box.style.backdropFilter = blurVal;
+  box.style.webkitBackdropFilter = blurVal;
+  box.style.width = `${currentAnswerWidth}px`;
+  box.style.borderRadius = `${currentAnswerBorderRadius}px`;
+  box.style.border = getAnswerBoxBorderCss(inp);
+  box.style.boxShadow = inp.overlayShadow;
+  box.style.color = inp.overlayTextPrimary;
+
+  const closeBtn = document.getElementById("hs-close");
+  if (closeBtn) {
+    closeBtn.style.color = inp.overlayTextMuted;
+    closeBtn.style.opacity = currentAnswerStealthMode ? "0.6" : "0.75";
+  }
+  const copyBtn = document.getElementById("hs-copy");
+  if (copyBtn) {
+    copyBtn.style.color = inp.overlayTextMuted;
+    copyBtn.style.opacity = currentAnswerStealthMode ? "0.6" : "0.75";
+  }
+  const dragBar = document.getElementById("hs-drag-bar");
+  if (dragBar) dragBar.style.display = currentAnswerDragBar ? "block" : "none";
+
+  box.querySelectorAll(".hs-card").forEach(c => {
+    c.style.background = inp.cardBg;
+    c.style.borderLeftColor = inp.cardBorder;
+    c.style.color = inp.cardValue;
+    c.style.fontSize = `${currentAnswerFontSize}px`;
+  });
+  box.querySelectorAll(".hs-card-label").forEach(l => {
+    l.style.color = inp.cardLabel;
+  });
+  const expandBtn = document.getElementById("hs-expand-step");
+  if (expandBtn) {
+    expandBtn.style.background = inp.buttonBg;
+    expandBtn.style.color = inp.buttonText;
+    expandBtn.style.borderColor = inp.buttonBorder;
+  }
+}
+
 if (typeof chrome !== "undefined" && chrome.storage?.local) {
   try {
-    chrome.storage.local.get(["hsOverlayPos", "snipCursor", "customCursorUrl"], (res) => {
+    chrome.storage.local.get([
+      "hsOverlayPos", "snipCursor", "customCursorUrl",
+      "snipThemeMode", "snipCustomTheme", "answerThemeMode", "answerCustomTheme", "splitAnswerTheme",
+      "themeMode", "customTheme",
+      "snipDimming", "snipBorderThickness", "snipFillOpacity", "snipBorderStyle", "snipBorderGlow", "snipShowHint",
+      "answerStealthMode", "answerBorderThickness", "answerBorderRadius", "answerWidth", "answerOpacity", "answerBlur", "answerFontSize", "answerBorderStyle", "answerDragBar", "answerAutoCopy",
+      "answerCustomColorEnabled", "answerCustomBgColor", "answerCustomTextColor", "answerCustomBorderColor"
+    ], (res) => {
       if (res) {
         if (res.hsOverlayPos) savedOverlayPos = res.hsOverlayPos;
         if (res.snipCursor) currentSnipCursor = res.snipCursor;
         if (res.customCursorUrl) currentCustomCursorUrl = res.customCursorUrl;
+        if (res.snipDimming !== undefined) currentSnipDimming = Number(res.snipDimming);
+        if (res.snipBorderThickness !== undefined) currentSnipBorderThickness = Number(res.snipBorderThickness);
+        if (res.snipFillOpacity !== undefined) currentSnipFillOpacity = Number(res.snipFillOpacity);
+        if (res.snipBorderStyle !== undefined) currentSnipBorderStyle = res.snipBorderStyle;
+        if (res.snipBorderGlow !== undefined) currentSnipBorderGlow = !!res.snipBorderGlow;
+        if (res.snipShowHint !== undefined) currentSnipShowHint = !!res.snipShowHint;
+
+        if (res.answerStealthMode !== undefined) currentAnswerStealthMode = !!res.answerStealthMode;
+        if (res.answerBorderThickness !== undefined) currentAnswerBorderThickness = Number(res.answerBorderThickness);
+        if (res.answerBorderRadius !== undefined) currentAnswerBorderRadius = Number(res.answerBorderRadius);
+        if (res.answerWidth !== undefined) currentAnswerWidth = Number(res.answerWidth);
+        if (res.answerOpacity !== undefined) currentAnswerOpacity = Number(res.answerOpacity);
+        if (res.answerBlur !== undefined) currentAnswerBlur = Number(res.answerBlur);
+        if (res.answerFontSize !== undefined) currentAnswerFontSize = Number(res.answerFontSize);
+        if (res.answerBorderStyle !== undefined) currentAnswerBorderStyle = res.answerBorderStyle;
+        if (res.answerDragBar !== undefined) currentAnswerDragBar = !!res.answerDragBar;
+        if (res.answerAutoCopy !== undefined) currentAnswerAutoCopy = !!res.answerAutoCopy;
+
+        if (res.answerCustomColorEnabled !== undefined) currentAnswerCustomColorEnabled = !!res.answerCustomColorEnabled;
+        if (res.answerCustomBgColor) currentAnswerCustomBgColor = res.answerCustomBgColor;
+        if (res.answerCustomTextColor) currentAnswerCustomTextColor = res.answerCustomTextColor;
+        if (res.answerCustomBorderColor) currentAnswerCustomBorderColor = res.answerCustomBorderColor;
+
+        updateActiveThemeConfigs(res);
       }
     });
     chrome.storage.onChanged?.addListener((changes, area) => {
       if (area === "local") {
         if (changes.snipCursor) currentSnipCursor = changes.snipCursor.newValue;
         if (changes.customCursorUrl) currentCustomCursorUrl = changes.customCursorUrl.newValue;
+        if (changes.snipDimming !== undefined) currentSnipDimming = Number(changes.snipDimming.newValue);
+        if (changes.snipBorderThickness !== undefined) currentSnipBorderThickness = Number(changes.snipBorderThickness.newValue);
+        if (changes.snipFillOpacity !== undefined) currentSnipFillOpacity = Number(changes.snipFillOpacity.newValue);
+        if (changes.snipBorderStyle !== undefined) currentSnipBorderStyle = changes.snipBorderStyle.newValue;
+        if (changes.snipBorderGlow !== undefined) currentSnipBorderGlow = !!changes.snipBorderGlow.newValue;
+        if (changes.snipShowHint !== undefined) currentSnipShowHint = !!changes.snipShowHint.newValue;
+
+        let rethemeNeeded = false;
+        if (changes.answerStealthMode !== undefined) {
+          currentAnswerStealthMode = !!changes.answerStealthMode.newValue;
+          rethemeNeeded = true;
+        }
+        if (changes.answerBorderThickness !== undefined) {
+          currentAnswerBorderThickness = Number(changes.answerBorderThickness.newValue);
+          rethemeNeeded = true;
+        }
+        if (changes.answerBorderRadius !== undefined) {
+          currentAnswerBorderRadius = Number(changes.answerBorderRadius.newValue);
+          rethemeNeeded = true;
+        }
+        if (changes.answerWidth !== undefined) {
+          currentAnswerWidth = Number(changes.answerWidth.newValue);
+          rethemeNeeded = true;
+        }
+        if (changes.answerOpacity !== undefined) {
+          currentAnswerOpacity = Number(changes.answerOpacity.newValue);
+          rethemeNeeded = true;
+        }
+        if (changes.answerBlur !== undefined) {
+          currentAnswerBlur = Number(changes.answerBlur.newValue);
+          rethemeNeeded = true;
+        }
+        if (changes.answerFontSize !== undefined) {
+          currentAnswerFontSize = Number(changes.answerFontSize.newValue);
+          rethemeNeeded = true;
+        }
+        if (changes.answerBorderStyle !== undefined) {
+          currentAnswerBorderStyle = changes.answerBorderStyle.newValue;
+          rethemeNeeded = true;
+        }
+        if (changes.answerDragBar !== undefined) {
+          currentAnswerDragBar = !!changes.answerDragBar.newValue;
+          rethemeNeeded = true;
+        }
+        if (changes.answerAutoCopy !== undefined) {
+          currentAnswerAutoCopy = !!changes.answerAutoCopy.newValue;
+        }
+        if (changes.answerCustomColorEnabled !== undefined) {
+          currentAnswerCustomColorEnabled = !!changes.answerCustomColorEnabled.newValue;
+          rethemeNeeded = true;
+        }
+        if (changes.answerCustomBgColor) {
+          currentAnswerCustomBgColor = changes.answerCustomBgColor.newValue;
+          rethemeNeeded = true;
+        }
+        if (changes.answerCustomTextColor) {
+          currentAnswerCustomTextColor = changes.answerCustomTextColor.newValue;
+          rethemeNeeded = true;
+        }
+        if (changes.answerCustomBorderColor) {
+          currentAnswerCustomBorderColor = changes.answerCustomBorderColor.newValue;
+          rethemeNeeded = true;
+        }
+
+        let themeChanged = false;
+        if (changes.snipThemeMode || changes.themeMode) {
+          currentSnipThemeMode = changes.snipThemeMode?.newValue || changes.themeMode?.newValue || "default";
+          themeChanged = true;
+        }
+        if (changes.snipCustomTheme || changes.customTheme) {
+          currentSnipCustomTheme = changes.snipCustomTheme?.newValue || changes.customTheme?.newValue || "catppuccin-mocha";
+          themeChanged = true;
+        }
+        if (changes.answerThemeMode) {
+          currentAnswerThemeMode = changes.answerThemeMode.newValue;
+          themeChanged = true;
+        }
+        if (changes.answerCustomTheme) {
+          currentAnswerCustomTheme = changes.answerCustomTheme.newValue;
+          themeChanged = true;
+        }
+        if (changes.splitAnswerTheme !== undefined) {
+          currentSplitAnswerTheme = !!changes.splitAnswerTheme.newValue;
+          if (!changes.answerThemeMode) {
+            currentAnswerThemeMode = currentSplitAnswerTheme ? "customized" : "default";
+          }
+          themeChanged = true;
+        }
+        if (themeChanged) {
+          updateActiveThemeConfigs({
+            snipThemeMode: currentSnipThemeMode,
+            snipCustomTheme: currentSnipCustomTheme,
+            answerThemeMode: currentAnswerThemeMode,
+            answerCustomTheme: currentAnswerCustomTheme
+          });
+          rethemeLiveAnswerOverlay();
+        } else if (rethemeNeeded) {
+          rethemeLiveAnswerOverlay();
+        }
       }
     });
   } catch (e) {}
@@ -84,12 +450,17 @@ function startSnipping() {
     return;
   }
 
+  const inp = activeSnipConfig.inpage;
+
+  const dimAlpha = Math.max(0, Math.min(100, currentSnipDimming)) / 100;
+  const overlayBg = (dimAlpha > 0) ? `rgba(0, 0, 0, ${dimAlpha})` : "transparent";
+
   const overlay = document.createElement("div");
   overlay.id = "hs-overlay";
   overlay.style.cssText = `
     position: fixed; top: 0; left: 0;
     width: 100vw; height: 100vh;
-    background: rgba(0,0,0,0.08);
+    background: ${overlayBg};
     z-index: 999999; cursor: ${getSnipCursorCss()} !important;
   `;
 
@@ -98,10 +469,10 @@ function startSnipping() {
   hint.style.cssText = `
     position: fixed; top: 14px; left: 50%;
     transform: translateX(-50%);
-    background: rgba(254, 250, 245, 0.94);
-    border: 1px solid rgba(184, 158, 134, 0.55);
-    box-shadow: 0 6px 20px rgba(92, 65, 43, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    color: #4a2815;
+    background: ${inp.snipHintBg};
+    border: 1px solid ${inp.snipHintBorder};
+    box-shadow: ${inp.snipHintShadow};
+    color: ${inp.snipHintText};
     padding: 7px 20px; border-radius: 30px;
     font-size: 12.5px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-weight: 600;
@@ -110,16 +481,32 @@ function startSnipping() {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     letter-spacing: 0.15px;
+    display: ${currentSnipShowHint ? "block" : "none"};
   `;
+
+  const selectionFill = (currentSnipFillOpacity <= 0)
+    ? "transparent"
+    : colorWithAlpha(inp.snipBorder, currentSnipFillOpacity / 100);
+
+  const selectionGlow = (currentSnipBorderGlow && currentSnipBorderThickness > 0 && currentSnipBorderStyle !== "none")
+    ? (inp.snipBoxShadow || `0 0 14px ${colorWithAlpha(inp.snipBorder, 0.4)}`)
+    : "none";
+
+  const selectionBorder = (currentSnipBorderThickness <= 0 || currentSnipBorderStyle === "none")
+    ? "none"
+    : `${currentSnipBorderThickness}px ${currentSnipBorderStyle} ${inp.snipBorder}`;
 
   selectionBox = document.createElement("div");
   selectionBox.style.cssText = `
     position: fixed;
-    border: 1.5px dashed #9b5329;
-    background: rgba(155, 83, 41, 0.1);
-    box-shadow: 0 0 14px rgba(155, 83, 41, 0.22);
+    border: ${selectionBorder};
+    background: ${selectionFill};
+    box-shadow: ${selectionGlow};
     z-index: 9999998; pointer-events: none;
     display: none;
+    will-change: left, top, width, height;
+    transform: translateZ(0);
+    contain: strict;
   `;
 
   document.body.appendChild(overlay);
@@ -162,20 +549,36 @@ function startSnipping() {
     if (e.button !== 0) return;
     startX = e.clientX;
     startY = e.clientY;
+    selectionBox.style.left = `${startX}px`;
+    selectionBox.style.top = `${startY}px`;
+    selectionBox.style.width = "0px";
+    selectionBox.style.height = "0px";
     selectionBox.style.display = "block";
   });
 
+  let snipRaf = null;
+  let curMouseX = 0;
+  let curMouseY = 0;
+
   overlay.addEventListener("mousemove", (e) => {
-    if (!startX) return;
-    const x = Math.min(e.clientX, startX);
-    const y = Math.min(e.clientY, startY);
-    const w = Math.abs(e.clientX - startX);
-    const h = Math.abs(e.clientY - startY);
-    selectionBox.style.left = x + "px";
-    selectionBox.style.top = y + "px";
-    selectionBox.style.width = w + "px";
-    selectionBox.style.height = h + "px";
-  });
+    if (startX === null || startY === null) return;
+    curMouseX = e.clientX;
+    curMouseY = e.clientY;
+    if (!snipRaf) {
+      snipRaf = requestAnimationFrame(() => {
+        snipRaf = null;
+        if (startX === null || startY === null) return;
+        const x = Math.min(curMouseX, startX);
+        const y = Math.min(curMouseY, startY);
+        const w = Math.abs(curMouseX - startX);
+        const h = Math.abs(curMouseY - startY);
+        selectionBox.style.left = `${x}px`;
+        selectionBox.style.top = `${y}px`;
+        selectionBox.style.width = `${w}px`;
+        selectionBox.style.height = `${h}px`;
+      });
+    }
+  }, { passive: true });
 
   overlay.addEventListener("mouseup", (e) => {
     if (e.button === 2) {
@@ -184,6 +587,10 @@ function startSnipping() {
       return;
     }
     if (e.button !== 0 || startX === null || startY === null) return;
+    if (snipRaf) {
+      cancelAnimationFrame(snipRaf);
+      snipRaf = null;
+    }
     const endX = e.clientX;
     const endY = e.clientY;
     const x1 = Math.min(startX, endX);
@@ -204,6 +611,10 @@ function startSnipping() {
   document.addEventListener("keydown", escHandler);
 
   function cleanup() {
+    if (snipRaf) {
+      cancelAnimationFrame(snipRaf);
+      snipRaf = null;
+    }
     isSnipping = false;
     startX = startY = null;
     document.removeEventListener("keydown", escHandler);
@@ -844,42 +1255,57 @@ function makeDraggable(box) {
     e.preventDefault();
 
     box.style.cursor = "grabbing";
+    box.style.willChange = "left, top";
     document.body.style.userSelect = "none";
 
     const startBoxX = rect.left;
     const startBoxY = rect.top;
     const startMouseX = e.clientX;
     const startMouseY = e.clientY;
+    const boxW = box.offsetWidth || rect.width;
+    const boxH = box.offsetHeight || rect.height;
+    const maxLeft = Math.max(0, window.innerWidth - boxW);
+    const maxTop = Math.max(0, window.innerHeight - boxH);
+
+    let dragRaf = null;
+    let pendingLeft = startBoxX;
+    let pendingTop = startBoxY;
 
     const onMouseMove = (moveEvent) => {
       moveEvent.preventDefault();
       const deltaX = moveEvent.clientX - startMouseX;
       const deltaY = moveEvent.clientY - startMouseY;
 
-      let newLeft = startBoxX + deltaX;
-      let newTop = startBoxY + deltaY;
+      pendingLeft = Math.max(0, Math.min(startBoxX + deltaX, maxLeft));
+      pendingTop = Math.max(0, Math.min(startBoxY + deltaY, maxTop));
 
-      const maxLeft = Math.max(0, window.innerWidth - box.offsetWidth);
-      const maxTop = Math.max(0, window.innerHeight - box.offsetHeight);
-
-      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-      newTop = Math.max(0, Math.min(newTop, maxTop));
-
-      box.style.left = `${newLeft}px`;
-      box.style.top = `${newTop}px`;
-      box.style.bottom = "auto";
-      box.style.right = "auto";
+      if (!dragRaf) {
+        dragRaf = requestAnimationFrame(() => {
+          dragRaf = null;
+          box.style.left = `${pendingLeft}px`;
+          box.style.top = `${pendingTop}px`;
+          box.style.bottom = "auto";
+          box.style.right = "auto";
+        });
+      }
     };
 
     const onMouseUp = () => {
+      if (dragRaf) {
+        cancelAnimationFrame(dragRaf);
+        dragRaf = null;
+        box.style.left = `${pendingLeft}px`;
+        box.style.top = `${pendingTop}px`;
+      }
       box.style.cursor = "";
+      box.style.willChange = "auto";
       document.body.style.userSelect = "";
       saveCurrentOverlayPosition(box);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
     };
 
-    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mousemove", onMouseMove, { passive: false });
     document.addEventListener("mouseup", onMouseUp);
   };
 
@@ -902,7 +1328,7 @@ function makeDraggable(box) {
     } else {
       box.style.cursor = "text";
     }
-  });
+  }, { passive: true });
 
   box.addEventListener("mousedown", onMouseDown);
 }
@@ -1025,8 +1451,16 @@ function updateStreamingOverlay(partialText, style) {
     }
   }
 
+  const inp = getAnswerEffectiveInp();
   const currentLeft = box.style.left;
   const currentTop = box.style.top;
+  const blurVal = getAnswerBoxBlurCss();
+
+  if (currentAnswerStealthMode) {
+    box.classList.add("hs-stealth-mode");
+  } else {
+    box.classList.remove("hs-stealth-mode");
+  }
 
   box.style.cssText = `
     position: fixed;
@@ -1034,24 +1468,26 @@ function updateStreamingOverlay(partialText, style) {
     ${currentTop ? `top: ${currentTop};` : ''}
     bottom: auto;
     right: auto;
-    width: 340px;
+    width: ${currentAnswerWidth}px;
     max-height: 420px;
     z-index: 9999999;
-    background: rgba(246, 241, 235, 0.88);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(184, 158, 134, 0.45);
-    border-radius: 14px;
-    box-shadow: 0 4px 20px 0 rgba(74, 44, 17, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    background: ${getAnswerBoxBg(inp)};
+    backdrop-filter: ${blurVal};
+    -webkit-backdrop-filter: ${blurVal};
+    border: ${getAnswerBoxBorderCss(inp)};
+    border-radius: ${currentAnswerBorderRadius}px;
+    box-shadow: ${inp.overlayShadow};
     padding: 10px 14px;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #3b2210;
+    color: ${inp.overlayTextPrimary};
     overflow-y: auto;
     box-sizing: border-box;
     scrollbar-width: none;
     -ms-overflow-style: none;
     user-select: text;
     -webkit-user-select: text;
+    transform: translateZ(0);
+    contain: layout style;
   `;
 
   if (isNew || !currentLeft || !currentTop) {
@@ -1060,18 +1496,21 @@ function updateStreamingOverlay(partialText, style) {
   }
 
   box.innerHTML = `
-    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 40px; height: 26px; cursor: grab; z-index: 5;"></div>
+    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 40px; height: 26px; cursor: grab; z-index: 5; display: ${currentAnswerDragBar ? 'block' : 'none'};"></div>
     <button id="hs-close" title="Close" style="
       position: absolute; top: 2px; right: 2px;
       width: 34px; height: 34px;
-      background: transparent; color: #786959; border: none;
+      background: transparent; color: ${inp.overlayTextMuted}; border: none;
       cursor: pointer; font-size: 13px; font-weight: 600; line-height: 1;
       display: flex; align-items: center; justify-content: center;
-      padding: 0; z-index: 10; opacity: 0.75;
+      padding: 0; z-index: 10; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'};
+      transition: opacity 0.12s ease, transform 0.1s ease;
     ">✕</button>
-    <div style="padding-top: 4px; padding-right: 28px; white-space: pre-wrap; line-height: 1.45; font-size: 12px; color: #3b2210; user-select: text; -webkit-user-select: text; cursor: text;">${liveBody}</div>
+    <div style="padding-top: 4px; padding-right: 28px; white-space: pre-wrap; line-height: 1.45; font-size: ${currentAnswerFontSize}px; color: ${inp.overlayTextPrimary}; user-select: text; -webkit-user-select: text; cursor: text;">${liveBody}</div>
     <style>
       #hs-answer-overlay::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+      #hs-close:hover { opacity: 1 !important; }
+      #hs-close:active { transform: scale(0.88); }
     </style>
   `;
 
@@ -1082,45 +1521,56 @@ function updateStreamingOverlay(partialText, style) {
 // ── Loading overlay ────────────────────────────────
 function showLoadingOverlay(statusText = "Solving question...") {
   removeExistingOverlay();
+  const inp = getAnswerEffectiveInp();
   const box = document.createElement("div");
   box.id = "hs-answer-overlay";
+  if (currentAnswerStealthMode) {
+    box.classList.add("hs-stealth-mode");
+  }
+  const blurVal = getAnswerBoxBlurCss();
   box.style.cssText = `
     position: fixed;
-    width: 290px;
+    width: ${Math.min(currentAnswerWidth, 310)}px;
     z-index: 9999999;
-    background: rgba(246, 241, 235, 0.88);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(184, 158, 134, 0.45);
-    border-radius: 14px;
-    box-shadow: 0 4px 20px 0 rgba(74, 44, 17, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    background: ${getAnswerBoxBg(inp)};
+    backdrop-filter: ${blurVal};
+    -webkit-backdrop-filter: ${blurVal};
+    border: ${getAnswerBoxBorderCss(inp)};
+    border-radius: ${currentAnswerBorderRadius}px;
+    box-shadow: ${inp.overlayShadow};
     padding: 10px 14px;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 12px;
-    color: #3b2210;
+    font-size: ${currentAnswerFontSize}px;
+    color: ${inp.overlayTextPrimary};
     box-sizing: border-box;
     scrollbar-width: none;
     -ms-overflow-style: none;
     user-select: text;
     -webkit-user-select: text;
+    transform: translateZ(0);
+    contain: layout style;
   `;
   box.innerHTML = `
-    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 40px; height: 26px; cursor: grab; z-index: 5;"></div>
+    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 40px; height: 26px; cursor: grab; z-index: 5; display: ${currentAnswerDragBar ? 'block' : 'none'};"></div>
     <button id="hs-close" title="Close" style="
       position: absolute; top: 2px; right: 2px;
       width: 34px; height: 34px;
-      background: transparent; color: #786959; border: none;
+      background: transparent; color: ${inp.overlayTextMuted}; border: none;
       cursor: pointer; font-size: 13px; font-weight: 600; line-height: 1;
       display: flex; align-items: center; justify-content: center;
-      padding: 0; z-index: 10; opacity: 0.75;
+      padding: 0; z-index: 10; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'};
+      transition: opacity 0.12s ease, transform 0.1s ease;
     ">✕</button>
     <div style="display: flex; align-items: center; gap: 9px; padding-right: 28px; user-select: text; -webkit-user-select: text; cursor: text;">
-      <div style="width: 14px; height: 14px; border: 2px solid #b85d19; border-top-color: transparent; border-radius: 50%; animation: hsSpin 0.8s linear infinite; flex-shrink: 0;"></div>
-      <span style="font-size: 12px; font-weight: 600; color: #4a2c11;">${escapeHtml(statusText)}</span>
+      <div style="width: 14px; height: 14px; border: 2px solid ${inp.spinnerColor}; border-top-color: transparent; border-radius: 50%; animation: hsSpin 0.8s linear infinite; flex-shrink: 0;"></div>
+      <span style="font-size: ${currentAnswerFontSize}px; font-weight: 600; color: ${inp.overlayTextPrimary};">${escapeHtml(statusText)}</span>
     </div>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Playfair+Display:ital,wght@1,600;1,700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
       @keyframes hsSpin { to { transform: rotate(360deg); } }
       #hs-answer-overlay::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+      #hs-close:hover { opacity: 1 !important; }
+      #hs-close:active { transform: scale(0.88); }
     </style>
   `;
   document.body.appendChild(box);
@@ -1208,16 +1658,16 @@ function selectOptionOnPage(optionText) {
   // 3. Aggressive fallback: find any matching text element and look for a radio button nearby
   const allTags = Array.from(document.querySelectorAll('span, div, p, td'));
   for (const tag of allTags) {
-      if (tag.closest('#hs-answer-overlay')) continue;
-      const t = (tag.innerText || tag.textContent || "").trim();
-      if (t.length > 0 && t.length < 150 && isMatch(t)) {
-          let radio = tag.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]');
-          if (!radio) radio = tag.parentElement?.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]');
-          if (!radio) radio = tag.closest('li, tr, .option, .choice')?.querySelector('input[type="radio"], input[type="checkbox"]');
-          
-          if (radio) return triggerClick(radio);
-          return triggerClick(tag);
-      }
+    if (tag.closest('#hs-answer-overlay')) continue;
+    const t = (tag.innerText || tag.textContent || "").trim();
+    if (t.length > 0 && t.length < 150 && isMatch(t)) {
+      let radio = tag.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]');
+      if (!radio) radio = tag.parentElement?.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]');
+      if (!radio) radio = tag.closest('li, tr, .option, .choice')?.querySelector('input[type="radio"], input[type="checkbox"]');
+      
+      if (radio) return triggerClick(radio);
+      return triggerClick(tag);
+    }
   }
 
   return false;
@@ -1234,28 +1684,35 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
   const cleanAnswer = stripThinkTags(answer);
   const answerStyle = style || "detailed";
 
+  const inp = getAnswerEffectiveInp();
   const box = document.createElement("div");
   box.id = "hs-answer-overlay";
+  if (currentAnswerStealthMode) {
+    box.classList.add("hs-stealth-mode");
+  }
+  const blurVal = getAnswerBoxBlurCss();
   box.style.cssText = `
     position: fixed;
-    width: 350px;
+    width: ${currentAnswerWidth}px;
     max-height: 440px;
     z-index: 9999999;
-    background: rgba(246, 241, 235, 0.90);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(184, 158, 134, 0.45);
-    border-radius: 14px;
-    box-shadow: 0 4px 20px 0 rgba(74, 44, 17, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    background: ${getAnswerBoxBg(inp)};
+    backdrop-filter: ${blurVal};
+    -webkit-backdrop-filter: ${blurVal};
+    border: ${getAnswerBoxBorderCss(inp)};
+    border-radius: ${currentAnswerBorderRadius}px;
+    box-shadow: ${inp.overlayShadow};
     padding: 10px 14px;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #3b2210;
+    color: ${inp.overlayTextPrimary};
     overflow-y: auto;
     box-sizing: border-box;
     scrollbar-width: none;
     -ms-overflow-style: none;
     user-select: text;
     -webkit-user-select: text;
+    transform: translateZ(0);
+    contain: layout style;
   `;
 
   // ENFORCE the selected style. The model may ignore the 2-line contract, so we
@@ -1269,114 +1726,168 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
 
   let formattedHtml = "";
 
-  if (parts.why) {
-    formattedHtml += `
-      <div style="background: rgba(255, 255, 255, 0.5); border-left: 2px solid #b85d19; border-radius: 0 6px 6px 0; padding: 5px 10px; margin-bottom: 8px; font-size: 12px; line-height: 1.4; color: #4a2c11;">
-        <strong style="color: #87431b; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; font-weight: 700;">Why</strong>
-        ${escapeHtml(parts.why)}
-      </div>
-    `;
-  }
-  if (parts.correct) {
-    let autoSelectStatus = "";
-    if (autoSelect) {
-      const success = selectOptionOnPage(parts.correct);
-      autoSelectStatus = success 
-        ? `<span style="color: #2e6930; font-size: 11px; margin-left: 8px; font-weight: 700;">(⚡ Selected on Page)</span>`
-        : `<span style="color: #b45309; font-size: 11px; margin-left: 8px; font-weight: 700;">(⚠️ Verify manually)</span>`;
-    }
-
-    formattedHtml += `
-      <div style="background: rgba(255, 255, 255, 0.5); border-left: 2px solid #b85d19; border-radius: 0 6px 6px 0; padding: 5px 10px; margin-bottom: 8px;">
-        <span style="display: block; font-size: 10px; color: #87431b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; font-weight: 700;">Correct Option</span>
-        <div style="font-size: 13px; font-weight: 600; color: #3b2210; margin-bottom: 4px;">
-          ${escapeHtml(parts.correct)}
-          ${autoSelectStatus}
+  if (currentAnswerStealthMode) {
+    // ── Ultra-discreet stealth layout ──
+    if (parts.why) {
+      formattedHtml += `
+        <div class="hs-stealth-row" style="margin-bottom: 7px; font-size: ${currentAnswerFontSize}px; line-height: 1.45; color: ${inp.cardValue};">
+          <span class="hs-card-label" style="font-weight: 700; color: ${inp.cardLabel}; margin-right: 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px;">Why</span>
+          ${escapeHtml(parts.why)}
         </div>
-      </div>
-    `;
-  }
-  if (parts.final) {
-    formattedHtml += `
-      <div style="background: rgba(255, 255, 255, 0.5); border-left: 2px solid #b85d19; border-radius: 0 6px 6px 0; padding: 5px 10px; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #3b2210;">
-        <span style="display: block; font-size: 10px; color: #87431b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; font-weight: 700;">Final Answer</span>
-        ${escapeHtml(parts.final)}
-      </div>
-    `;
-  }
-
-  const hasCards = parts.why || parts.correct || parts.final;
-
-  if (!hasCards) {
-    if (strictMode) {
-      formattedHtml = `
-        <div style="background: rgba(255, 255, 255, 0.45); border-left: 2px solid #b45309; border-radius: 0 6px 6px 0; padding: 4px 10px; font-size: 10px; color: #92400e; margin-bottom: 8px;">
-          ⚠️ Response:
-        </div>
-        <div style="white-space: pre-wrap; line-height: 1.5; font-size: 12px; color: #4a2c11;">${escapeHtml(cleanAnswer || "No answer received.")}</div>
       `;
-    } else {
-      formattedHtml = `<div style="white-space: pre-wrap; line-height: 1.5; font-size: 12px; color: #3b2210;">${escapeHtml(cleanAnswer || "No answer received.")}</div>`;
     }
-  } else if (!strictMode || !keyLineCaptured) {
-    for (const line of parts.extra) {
-      if (!line) continue;
-      formattedHtml += `<div style="font-size: 12px; line-height: 1.5; color: #5a4230; margin-bottom: 6px;">${escapeHtml(line)}</div>`;
+    if (parts.correct) {
+      let autoSelectStatus = "";
+      if (autoSelect) {
+        const success = selectOptionOnPage(parts.correct);
+        autoSelectStatus = success ? ` <span style="font-size: 10px; color: #059669; font-weight: 700;">✓</span>` : "";
+      }
+      formattedHtml += `
+        <div class="hs-stealth-row" style="margin-bottom: 7px; font-size: ${currentAnswerFontSize + 0.5}px; font-weight: 600; line-height: 1.45; color: ${inp.cardValue};">
+          <span class="hs-card-label" style="font-weight: 700; color: ${inp.cardLabel}; margin-right: 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px;">Option</span>
+          ${escapeHtml(parts.correct)}${autoSelectStatus}
+        </div>
+      `;
+    }
+    if (parts.final) {
+      formattedHtml += `
+        <div class="hs-stealth-row" style="margin-bottom: 7px; font-size: ${currentAnswerFontSize + 0.5}px; font-weight: 600; line-height: 1.45; color: ${inp.cardValue};">
+          <span class="hs-card-label" style="font-weight: 700; color: ${inp.cardLabel}; margin-right: 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px;">Ans</span>
+          ${escapeHtml(parts.final)}
+        </div>
+      `;
+    }
+    if (!parts.why && !parts.correct && !parts.final) {
+      formattedHtml = `<div style="white-space: pre-wrap; line-height: 1.45; font-size: ${currentAnswerFontSize}px; color: ${inp.overlayTextPrimary};">${escapeHtml(cleanAnswer || "No answer received.")}</div>`;
+    } else if (!strictMode || !keyLineCaptured) {
+      for (const line of parts.extra) {
+        if (!line) continue;
+        formattedHtml += `<div style="font-size: 12px; line-height: 1.45; color: ${inp.overlayTextSecondary}; margin-bottom: 4px;">${escapeHtml(line)}</div>`;
+      }
+    }
+  } else {
+    // ── Standard Rich Cards Layout ──
+    if (parts.why) {
+      formattedHtml += `
+        <div class="hs-card" style="background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; border-radius: 0 8px 8px 0; padding: 7px 12px; margin-bottom: 9px; font-size: ${currentAnswerFontSize}px; line-height: 1.5; color: ${inp.cardValue};">
+          <span class="hs-card-label" style="font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; color: ${inp.cardLabel}; display: block; font-size: 12.5px; letter-spacing: 0.2px; margin-bottom: 3px;">Motivazione • Why</span>
+          ${escapeHtml(parts.why)}
+        </div>
+      `;
+    }
+    if (parts.correct) {
+      let autoSelectStatus = "";
+      if (autoSelect) {
+        const success = selectOptionOnPage(parts.correct);
+        autoSelectStatus = success 
+          ? `<span style="color: ${inp.badgeSuccess}; font-size: 11px; margin-left: 8px; font-weight: 700; font-style: normal; font-family: 'Plus Jakarta Sans', sans-serif;">(⚡ Selected on Page)</span>`
+          : `<span style="color: ${inp.badgeWarning}; font-size: 11px; margin-left: 8px; font-weight: 700; font-style: normal; font-family: 'Plus Jakarta Sans', sans-serif;">(⚠️ Verify manually)</span>`;
+      }
+
+      formattedHtml += `
+        <div class="hs-card" style="background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; border-radius: 0 8px 8px 0; padding: 7px 12px; margin-bottom: 9px;">
+          <span class="hs-card-label" style="font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; color: ${inp.cardLabel}; display: block; font-size: 12.5px; letter-spacing: 0.2px; margin-bottom: 3px;">Opzione Corretta • Correct Option</span>
+          <div style="font-size: ${currentAnswerFontSize + 1}px; font-weight: 600; color: ${inp.cardValue}; margin-bottom: 2px;">
+            ${escapeHtml(parts.correct)}
+            ${autoSelectStatus}
+          </div>
+        </div>
+      `;
+    }
+    if (parts.final) {
+      formattedHtml += `
+        <div class="hs-card" style="background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; border-radius: 0 8px 8px 0; padding: 7px 12px; margin-bottom: 9px; font-size: ${currentAnswerFontSize + 0.5}px; font-weight: 600; color: ${inp.cardValue};">
+          <span class="hs-card-label" style="font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; color: ${inp.cardLabel}; display: block; font-size: 12.5px; letter-spacing: 0.2px; margin-bottom: 3px;">Risultato Finale • Final Answer</span>
+          ${escapeHtml(parts.final)}
+        </div>
+      `;
+    }
+
+    const hasCards = parts.why || parts.correct || parts.final;
+
+    if (!hasCards) {
+      if (strictMode) {
+        formattedHtml = `
+          <div class="hs-card" style="background: ${inp.cardBg}; border-left: 2.5px solid ${inp.badgeWarning}; border-radius: 0 8px 8px 0; padding: 6px 12px; font-size: 11px; color: ${inp.badgeWarning}; margin-bottom: 8px;">
+            ⚠️ Response:
+          </div>
+          <div style="white-space: pre-wrap; line-height: 1.5; font-size: 12.5px; color: ${inp.overlayTextPrimary};">${escapeHtml(cleanAnswer || "No answer received.")}</div>
+        `;
+      } else {
+        formattedHtml = `<div style="white-space: pre-wrap; line-height: 1.5; font-size: 12.5px; color: ${inp.overlayTextPrimary};">${escapeHtml(cleanAnswer || "No answer received.")}</div>`;
+      }
+    } else if (!strictMode || !keyLineCaptured) {
+      for (const line of parts.extra) {
+        if (!line) continue;
+        formattedHtml += `<div style="font-size: 12.5px; line-height: 1.5; color: ${inp.overlayTextSecondary}; margin-bottom: 6px;">${escapeHtml(line)}</div>`;
+      }
     }
   }
 
   let expandStepBtnHtml = "";
   if (strictMode && lastCroppedBase64) {
-    expandStepBtnHtml = `
-      <div style="margin-top: 10px; padding-top: 7px; border-top: 1px dashed rgba(184, 158, 134, 0.45);">
-        <button id="hs-expand-step" style="
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 5px 11px;
-          background: rgba(255, 255, 255, 0.75);
-          color: #87431b;
-          border: 1px solid rgba(184, 158, 134, 0.55);
-          border-radius: 7px;
-          font-family: inherit;
-          font-size: 11px;
-          font-weight: 600;
-          cursor: pointer;
-          box-shadow: 0 1px 3px rgba(74, 44, 17, 0.05);
-          transition: all 0.15s ease;
-        ">
-          <span>🔍</span> Explain Step-by-Step
-        </button>
-      </div>
-    `;
+    if (currentAnswerStealthMode) {
+      expandStepBtnHtml = `
+        <div style="margin-top: 6px; padding-top: 4px;">
+          <button id="hs-expand-step" style="
+            background: transparent; color: ${inp.buttonText};
+            border: none; padding: 2px 4px; font-size: 11px;
+            cursor: pointer; opacity: 0.75; font-family: inherit;
+          ">[+ explain step-by-step]</button>
+        </div>
+      `;
+    } else {
+      expandStepBtnHtml = `
+        <div style="margin-top: 10px; padding-top: 7px; border-top: 1px dashed ${inp.overlayBorder};">
+          <button id="hs-expand-step" style="
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 6px 13px;
+            background: ${inp.buttonBg};
+            color: ${inp.buttonText};
+            border: 1px solid ${inp.buttonBorder};
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: all 0.12s ease;
+          ">
+            <span>🔍</span> Explain Step-by-Step
+          </button>
+        </div>
+      `;
+    }
   }
 
-  const truncNote = truncated
-    ? `<div style="margin-top: 8px; padding: 4px 10px; background: rgba(255, 255, 255, 0.45); border-left: 2px solid #b45309; border-radius: 0 6px 6px 0; font-size: 10px; color: #92400e;">⚠️ Output hit token limit.</div>`
+  const truncNote = (truncated && !currentAnswerStealthMode)
+    ? `<div style="margin-top: 8px; padding: 6px 12px; background: ${inp.cardBg}; border-left: 2.5px solid ${inp.badgeWarning}; border-radius: 0 8px 8px 0; font-size: 11px; color: ${inp.badgeWarning};">⚠️ Output hit token limit.</div>`
     : "";
 
   let keyBadge = "";
-  if (meta && meta.provider) {
+  if (meta && meta.provider && !currentAnswerStealthMode) {
     const keyNum = typeof meta.keyIndex === "number" ? meta.keyIndex + 1 : 1;
     const total = meta.totalKeys || 1;
     const fbText = meta.fallback ? " • fallback" : "";
-    keyBadge = `<div style="font-size: 9px; color: #786959; margin-top: 6px; text-align: right; opacity: 0.85;">⚡ ${escapeHtml(meta.provider)}: Key ${keyNum}/${total}${fbText}</div>`;
+    keyBadge = `<div style="font-size: 9.5px; color: ${inp.overlayTextMuted}; margin-top: 6px; text-align: right; opacity: 0.85; font-family: 'JetBrains Mono', monospace;">⚡ ${escapeHtml(meta.provider)}: Key ${keyNum}/${total}${fbText}</div>`;
   }
 
   box.innerHTML = `
-    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 70px; height: 26px; cursor: grab; z-index: 5;"></div>
+    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 70px; height: 26px; cursor: grab; z-index: 5; display: ${currentAnswerDragBar ? 'block' : 'none'};"></div>
     <div style="position: absolute; top: 2px; right: 2px; display: flex; align-items: center; gap: 2px; z-index: 10;">
       <button id="hs-copy" title="Copy clean answer" style="
         width: 32px; height: 32px;
-        background: transparent; color: #786959; border: none;
+        background: transparent; color: ${inp.overlayTextMuted}; border: none;
         cursor: pointer; font-size: 14px; line-height: 1;
         display: flex; align-items: center; justify-content: center;
-        padding: 0; opacity: 0.75; transition: all 0.15s ease;
+        padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: opacity 0.12s ease, transform 0.1s ease;
       ">⎘</button>
       <button id="hs-close" title="Close" style="
         width: 32px; height: 32px;
-        background: transparent; color: #786959; border: none;
+        background: transparent; color: ${inp.overlayTextMuted}; border: none;
         cursor: pointer; font-size: 13px; font-weight: 600; line-height: 1;
         display: flex; align-items: center; justify-content: center;
-        padding: 0; opacity: 0.75; transition: all 0.15s ease;
+        padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: opacity 0.12s ease, transform 0.1s ease;
       ">✕</button>
     </div>
     <div style="padding-top: 4px; padding-right: 28px; user-select: text; -webkit-user-select: text; cursor: text;">
@@ -1386,7 +1897,12 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
       ${keyBadge}
     </div>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Playfair+Display:ital,wght@1,600;1,700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
       #hs-answer-overlay::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+      #hs-copy:hover, #hs-close:hover { opacity: 1 !important; }
+      #hs-copy:active, #hs-close:active { transform: scale(0.88); }
+      #hs-expand-step:hover { filter: brightness(1.08); }
+      #hs-expand-step:active { transform: scale(0.96); }
     </style>
   `;
 
@@ -1398,18 +1914,20 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
 
   const expandBtn = document.getElementById("hs-expand-step");
   if (expandBtn) {
-    expandBtn.onmouseenter = () => {
-      expandBtn.style.background = "rgba(255, 255, 255, 0.95)";
-      expandBtn.style.borderColor = "#87431b";
-      expandBtn.style.color = "#6d3314";
-      expandBtn.style.transform = "translateY(-1px)";
-    };
-    expandBtn.onmouseleave = () => {
-      expandBtn.style.background = "rgba(255, 255, 255, 0.75)";
-      expandBtn.style.borderColor = "rgba(184, 158, 134, 0.55)";
-      expandBtn.style.color = "#87431b";
-      expandBtn.style.transform = "none";
-    };
+    if (!currentAnswerStealthMode) {
+      expandBtn.onmouseenter = () => {
+        expandBtn.style.background = inp.buttonHoverBg;
+        expandBtn.style.borderColor = inp.buttonHoverBorder;
+        expandBtn.style.color = inp.buttonHoverText;
+        expandBtn.style.transform = "translateY(-1px)";
+      };
+      expandBtn.onmouseleave = () => {
+        expandBtn.style.background = inp.buttonBg;
+        expandBtn.style.borderColor = inp.buttonBorder;
+        expandBtn.style.color = inp.buttonText;
+        expandBtn.style.transform = "none";
+      };
+    }
     expandBtn.onclick = () => {
       if (!lastCroppedBase64) return;
       showLoadingOverlay("Generating step-by-step derivation...");
@@ -1419,19 +1937,19 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
 
   const onlyAnswerText = getCleanAnswerOnly(cleanAnswer, parts);
 
-  // Auto-copy the clean answer text immediately (only answer, no option letter/number)
-  if (onlyAnswerText) {
+  // Auto-copy the clean answer text immediately if enabled
+  if (currentAnswerAutoCopy && onlyAnswerText) {
     copyToClipboard(onlyAnswerText).then((ok) => {
       const copyBtn = document.getElementById("hs-copy");
       if (copyBtn && ok) {
         copyBtn.textContent = "✓";
-        copyBtn.style.color = "#2e6930";
+        copyBtn.style.color = inp.copySuccess;
         copyBtn.style.opacity = "1";
         setTimeout(() => {
           if (copyBtn) {
             copyBtn.textContent = "⎘";
-            copyBtn.style.color = "#786959";
-            copyBtn.style.opacity = "0.75";
+            copyBtn.style.color = inp.overlayTextMuted;
+            copyBtn.style.opacity = currentAnswerStealthMode ? "0.4" : "0.75";
           }
         }, 1500);
       }
@@ -1445,13 +1963,13 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
       const copyBtn = document.getElementById("hs-copy");
       if (copyBtn && ok) {
         copyBtn.textContent = "✓";
-        copyBtn.style.color = "#2e6930";
+        copyBtn.style.color = inp.copySuccess;
         copyBtn.style.opacity = "1";
         setTimeout(() => {
           if (copyBtn) {
             copyBtn.textContent = "⎘";
-            copyBtn.style.color = "#786959";
-            copyBtn.style.opacity = "0.75";
+            copyBtn.style.color = inp.overlayTextMuted;
+            copyBtn.style.opacity = currentAnswerStealthMode ? "0.4" : "0.75";
           }
         }, 1500);
       }

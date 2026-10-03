@@ -2,67 +2,96 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Homework Solver — Settings</title>
+  <title>Homework Solver — Studio & Configurazione</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,600;1,700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Acrylic Sand Canvas */
+      /* Acrylic Sand Canvas Default Tokens */
       --sand-bg-start: #f8f3ec;
       --sand-bg-mid: #ede3d4;
       --sand-bg-end: #e3d4c0;
       
       /* Acrylic Glass Tokens */
-      --glass-surface: rgba(255, 252, 248, 0.78);
-      --glass-surface-subtle: rgba(246, 240, 230, 0.68);
-      --glass-border: rgba(255, 255, 255, 0.92);
-      --glass-border-subtle: rgba(184, 158, 134, 0.28);
-      --glass-shadow: 0 14px 40px -8px rgba(92, 65, 43, 0.09), 0 4px 14px rgba(92, 65, 43, 0.04);
-      --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.95);
-      --glass-blur: blur(24px) saturate(180%);
+      /* Matte Surface Tokens — No Glitter, No Glow */
+      --glass-surface: rgba(255, 252, 248, 0.96);
+      --glass-surface-subtle: rgba(246, 240, 230, 0.92);
+      --glass-border: rgba(184, 158, 134, 0.35);
+      --glass-border-subtle: rgba(184, 158, 134, 0.22);
+      --glass-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+      --glass-inset: none;
+      --glass-blur: blur(8px);
 
       /* Brown Typography Palette */
       --text-primary: #26160d;     /* Deep roasted espresso / darkest warm walnut */
-      --text-secondary: #563e30;   /* Rich warm hazelnut brown */
-      --text-muted: #826a58;       /* Toasted sand mocha */
-      --text-faint: #a69180;       /* Soft warm taupe */
+      --text-secondary: #523c2e;   /* Rich warm hazelnut brown */
+      --text-muted: #7e6754;       /* Toasted sand mocha */
+      --text-faint: #a38e7e;       /* Soft warm taupe */
 
       /* Warm Terracotta Bronze Accents */
       --primary: #9b5329;          /* Rich warm bronze terracotta */
       --primary-hover: #83421d;
-      --primary-glow: rgba(155, 83, 41, 0.2);
+      --primary-glow: transparent;
       
       /* Groq Amber / Paprika Badge */
-      --groq-pill-bg: rgba(205, 82, 30, 0.09);
+      --groq-pill-bg: rgba(205, 82, 30, 0.1);
       --groq-pill-text: #9e3d17;
-      --groq-pill-border: rgba(205, 82, 30, 0.24);
+      --groq-pill-border: rgba(205, 82, 30, 0.28);
+
+      /* Form Fields & Contrast Guarantee Tokens */
+      --input-bg: #ffffff;
+      --input-text: #26160d;
+      --input-border: rgba(184, 158, 134, 0.45);
+      --input-placeholder: #a38e7e;
+      --btn-sec-bg: rgba(255, 255, 255, 0.9);
+      --btn-sec-text: #473224;
+      --btn-sec-border: rgba(184, 158, 134, 0.5);
+      --btn-sec-hover: #ffffff;
+      --card-bg-hover: rgba(255, 255, 255, 0.9);
+      --save-bar-bg: rgba(247, 241, 233, 0.98);
+      --save-bar-border: rgba(184, 158, 134, 0.35);
+      --kbd-bg: #ffffff;
+      --kbd-text: #9b5329;
+      --kbd-border: rgba(184, 158, 134, 0.5);
+      --tab-active-bg: rgba(255, 255, 255, 0.96);
+      --tab-active-text: #9b5329;
+      --tab-active-border: rgba(184, 158, 134, 0.45);
+      --theme-active-wash: rgba(155, 83, 41, 0.08);
 
       /* Natural Status Colors */
-      --success: #267344;
+      --success: #1d6638;
       --warning: #b45309;
       --danger: #b91c1c;
       --radius: 14px;
+      --radius-sm: 9px;
 
-      /* Premium Font Stacks */
-      --font-display: 'Playfair Display', 'Iowan Old Style', 'Palatino Linotype', 'Georgia', serif;
-      --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      /* Authentic Italian Editorial Font Stacks */
+      --font-italian: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+      --font-display: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html {
+      background: var(--sand-bg-mid, #ede3d4);
+      background-color: var(--sand-bg-mid, #ede3d4);
+      min-height: 100%;
+    }
+
     body {
       font-family: var(--font-ui);
-      background: 
-        radial-gradient(ellipse 80% 50% at 15% 10%, rgba(255, 255, 255, 0.9), transparent 70%),
-        radial-gradient(ellipse 70% 60% at 85% 85%, rgba(227, 212, 192, 0.7), transparent 70%),
-        linear-gradient(140deg, var(--sand-bg-start) 0%, var(--sand-bg-mid) 48%, var(--sand-bg-end) 100%);
+      background: var(--sand-bg-mid, #ede3d4);
+      background-color: var(--sand-bg-mid, #ede3d4);
+      background-image: linear-gradient(160deg, var(--sand-bg-start) 0%, var(--sand-bg-mid) 50%, var(--sand-bg-end) 100%);
       background-attachment: fixed;
       color: var(--text-primary);
       line-height: 1.55;
-      padding: 36px 16px 96px;
+      padding: 32px 28px 105px;
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -70,61 +99,190 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
+    /* 100% Expansive Dashboard Container */
     .container {
       width: 100%;
-      max-width: 680px;
+      max-width: 1280px;
       display: flex;
       flex-direction: column;
       gap: 22px;
     }
 
-    /* Header */
+    /* Header Bar */
     .header-card {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 24px;
+      padding: 24px 30px;
       background: var(--glass-surface);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
       border: 1px solid var(--glass-border);
       border-radius: var(--radius);
-      box-shadow: var(--glass-shadow), var(--glass-inset);
+      box-shadow: var(--glass-shadow);
+      width: 100%;
     }
     .header-title {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 18px;
+    }
+    .header-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(155, 83, 41, 0.12);
+      border: 1px solid rgba(155, 83, 41, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
     }
     .header-title h1 {
       font-family: var(--font-display);
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 700;
       letter-spacing: -0.4px;
       color: var(--text-primary);
       line-height: 1.25;
     }
     .header-title p {
-      font-size: 13px;
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-style: italic;
       color: var(--text-muted);
       margin-top: 3px;
       font-weight: 400;
+      letter-spacing: 0.15px;
+    }
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .provider-pill {
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 12px;
+      padding: 6px 14px;
       background: var(--groq-pill-bg);
       border: 1px solid var(--groq-pill-border);
       border-radius: 999px;
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 600;
       letter-spacing: 0.4px;
       color: var(--groq-pill-text);
       text-transform: uppercase;
       box-shadow: 0 1px 3px rgba(158, 61, 23, 0.06);
+    }
+
+    /* 100% Width Horizontal Navigation Tabs Bar */
+    .tabs-nav-bar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      background: var(--glass-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 7px;
+      box-shadow: var(--glass-shadow);
+    }
+    .nav-tab-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 12px 14px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-ui);
+      font-size: 13.5px;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color 0.12s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.12s cubic-bezier(0.16, 1, 0.3, 1), color 0.12s cubic-bezier(0.16, 1, 0.3, 1), transform 0.1s ease, box-shadow 0.12s ease;
+      user-select: none;
+    }
+    .nav-tab-btn:hover {
+      color: var(--text-primary);
+      background: var(--card-bg-hover, rgba(255, 255, 255, 0.6));
+    }
+    .nav-tab-btn:active {
+      transform: scale(0.97);
+    }
+    .nav-tab-btn.active {
+      color: var(--tab-active-text, var(--primary));
+      background: var(--tab-active-bg, rgba(255, 255, 255, 0.95));
+      border-color: var(--tab-active-border, rgba(184, 158, 134, 0.4));
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .tab-icon {
+      font-size: 16px;
+      line-height: 1;
+      display: inline-block;
+      transition: transform 0.12s ease;
+    }
+    .nav-tab-btn:hover .tab-icon {
+      transform: scale(1.18);
+    }
+    .nav-tab-btn.active .tab-icon {
+      transform: scale(1.12);
+    }
+    .tab-label {
+      letter-spacing: -0.15px;
+    }
+
+    /* Tab Panes */
+    .tab-pane {
+      display: none;
+      width: 100%;
+      animation: tabFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tab-pane.active {
+      display: block;
+    }
+    @keyframes tabFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(3px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 2D Horizontal and Vertical Grid Containers */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 20px;
+      align-items: start;
+      width: 100%;
+    }
+    .grid-2col-equal {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+      width: 100%;
+    }
+    .grid-col-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+    }
+    .grid-full {
+      grid-column: 1 / -1;
     }
 
     /* Cards */
@@ -134,15 +292,16 @@
       -webkit-backdrop-filter: var(--glass-blur);
       border: 1px solid var(--glass-border);
       border-radius: var(--radius);
-      padding: 22px 24px;
+      padding: 24px 26px;
       display: flex;
       flex-direction: column;
       gap: 18px;
-      box-shadow: var(--glass-shadow), var(--glass-inset);
+      box-shadow: var(--glass-shadow);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+      width: 100%;
     }
     .card:hover {
-      box-shadow: 0 18px 46px -8px rgba(92, 65, 43, 0.12), 0 6px 18px rgba(92, 65, 43, 0.05), var(--glass-inset);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
     .card-header {
       display: flex;
@@ -153,13 +312,21 @@
     }
     .card-title {
       font-family: var(--font-display);
-      font-size: 17.5px;
+      font-size: 18px;
       font-weight: 700;
       letter-spacing: -0.2px;
       display: flex;
-      align-items: center;
-      gap: 9px;
+      align-items: baseline;
+      gap: 10px;
       color: var(--text-primary);
+    }
+    .card-subtitle-flourish {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 13.5px;
+      font-weight: 400;
+      color: var(--text-muted);
+      letter-spacing: 0.2px;
     }
     .link-btn {
       font-family: var(--font-ui);
@@ -178,11 +345,12 @@
       transform: translateX(2px);
     }
 
-    /* Form Fields */
+    /* Form Fields — Strict WCAG Contrast Verified */
     .field {
       display: flex;
       flex-direction: column;
       gap: 7px;
+      width: 100%;
     }
     .field label {
       font-size: 13px;
@@ -201,29 +369,29 @@
     }
     input[type="text"], select, textarea {
       width: 100%;
-      background: rgba(255, 255, 255, 0.84);
-      border: 1px solid rgba(184, 158, 134, 0.38);
-      border-radius: 9px;
-      color: var(--text-primary);
+      background: var(--input-bg, #ffffff);
+      border: 1px solid var(--input-border, rgba(184, 158, 134, 0.45));
+      border-radius: var(--radius-sm);
+      color: var(--input-text, #26160d);
       font-family: var(--font-ui);
       font-size: 13.5px;
       font-weight: 500;
-      padding: 11px 13px;
+      padding: 11px 14px;
       outline: none;
       transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-      box-shadow: inset 0 1px 2px rgba(92, 65, 43, 0.03);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
     }
     input[type="text"]::placeholder, textarea::placeholder {
-      color: var(--text-faint);
+      color: var(--input-placeholder, #a38e7e);
     }
     input[type="text"]:focus, select:focus, textarea:focus {
-      background: rgba(255, 255, 255, 0.98);
+      background: var(--input-bg, #ffffff);
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-glow), inset 0 1px 2px rgba(92, 65, 43, 0.03);
+      box-shadow: 0 0 0 3px var(--primary-glow), inset 0 1px 2px rgba(0, 0, 0, 0.04);
     }
     textarea {
       resize: vertical;
-      min-height: 90px;
+      min-height: 110px;
       font-family: var(--font-mono);
       font-size: 12.5px;
       line-height: 1.55;
@@ -240,13 +408,14 @@
       border-radius: 10px;
       cursor: pointer;
       transition: background 0.2s ease, border-color 0.2s ease;
+      width: 100%;
     }
     .switch-row:hover {
-      background: rgba(255, 255, 255, 0.88);
-      border-color: rgba(184, 158, 134, 0.5);
+      background: var(--card-bg-hover, rgba(255, 255, 255, 0.9));
+      border-color: var(--primary);
     }
     .switch-info h4 {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
       color: var(--text-primary);
     }
@@ -272,7 +441,7 @@
       cursor: pointer;
       top: 0; left: 0; right: 0; bottom: 0;
       background-color: rgba(184, 158, 134, 0.38);
-      transition: .25s ease;
+      transition: background-color .15s ease;
       border-radius: 24px;
     }
     .slider:before {
@@ -283,7 +452,7 @@
       left: 3px;
       bottom: 3px;
       background-color: white;
-      transition: .25s ease;
+      transition: transform .15s cubic-bezier(0.16, 1, 0.3, 1);
       border-radius: 50%;
       box-shadow: 0 1px 4px rgba(92, 65, 43, 0.2);
     }
@@ -307,24 +476,27 @@
       border-radius: 9px;
       cursor: pointer;
       border: none;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.1s ease, box-shadow 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+    .btn:active {
+      transform: scale(0.96) !important;
     }
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.85);
-      color: var(--text-secondary);
-      border: 1px solid rgba(184, 158, 134, 0.45);
-      box-shadow: 0 2px 6px rgba(92, 65, 43, 0.05);
+      background: var(--btn-sec-bg, rgba(255, 255, 255, 0.9));
+      color: var(--btn-sec-text, #473224);
+      border: 1px solid var(--btn-sec-border, rgba(184, 158, 134, 0.5));
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
     }
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 1);
-      color: var(--text-primary);
-      border-color: rgba(184, 158, 134, 0.65);
+      background: var(--btn-sec-hover, #ffffff);
+      color: var(--primary);
+      border-color: var(--primary);
       transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(92, 65, 43, 0.08);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
     }
     .btn-primary {
       background: linear-gradient(135deg, #a45a2a 0%, #87431b 100%);
-      color: #fffaf5;
+      color: #ffffff;
       box-shadow: 0 4px 14px rgba(135, 67, 27, 0.28);
     }
     .btn-primary:hover {
@@ -332,28 +504,55 @@
       transform: translateY(-1px);
       box-shadow: 0 6px 18px rgba(135, 67, 27, 0.34);
     }
-    .btn-primary:active {
-      transform: translateY(0);
+
+    /* Model Quick Chips */
+    .chip-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .chip-btn {
+      padding: 5px 12px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--input-bg, rgba(255, 255, 255, 0.8));
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.1s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+    .chip-btn:hover {
+      background: var(--card-bg-hover, #ffffff);
+      color: var(--primary);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+    .chip-btn:active {
+      transform: scale(0.94);
     }
 
     /* Key Test Results Container */
     #keyTestResults {
       display: none;
-      background: rgba(255, 255, 255, 0.85);
+      background: var(--input-bg, #ffffff);
       border: 1px solid var(--glass-border-subtle);
       border-radius: 9px;
       padding: 14px;
       font-family: var(--font-mono);
       font-size: 12px;
+      color: var(--text-primary);
       max-height: 180px;
       overflow-y: auto;
-      box-shadow: inset 0 1px 3px rgba(92, 65, 43, 0.03);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
     }
 
     /* Cursor Preview Box */
     .cursor-preview-box {
       background: var(--glass-surface-subtle);
-      border: 1.5px dashed rgba(184, 158, 134, 0.5);
+      border: 1.5px dashed var(--glass-border-subtle);
       border-radius: 10px;
       padding: 24px 16px;
       text-align: center;
@@ -365,13 +564,20 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 80px;
+      min-height: 85px;
       cursor: crosshair;
     }
     .cursor-preview-box:hover {
       border-color: var(--primary);
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--card-bg-hover, rgba(255, 255, 255, 0.92));
       color: var(--primary);
+    }
+
+    /* Stealth Mode Live Simulation */
+    #answerPreviewContainer.stealth-sim {
+      cursor: default;
+      border: none !important;
+      box-shadow: none !important;
     }
 
     /* Keyboard Shortcuts Table */
@@ -381,7 +587,7 @@
       font-size: 13px;
     }
     .shortcut-table td {
-      padding: 10px 12px;
+      padding: 12px 14px;
       border-bottom: 1px solid var(--glass-border-subtle);
       color: var(--text-secondary);
     }
@@ -389,15 +595,15 @@
       border-bottom: none;
     }
     kbd {
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(184, 158, 134, 0.45);
+      background: var(--kbd-bg, #ffffff);
+      border: 1px solid var(--kbd-border, rgba(184, 158, 134, 0.5));
       border-radius: 5px;
-      padding: 2px 7px;
+      padding: 3px 8px;
       font-family: var(--font-mono);
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 600;
-      color: var(--primary);
-      box-shadow: 0 1px 2px rgba(92, 65, 43, 0.06);
+      color: var(--kbd-text, var(--primary));
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     }
 
     /* Sticky Bottom Bar */
@@ -406,19 +612,19 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: rgba(247, 241, 233, 0.88);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border-top: 1px solid rgba(255, 255, 255, 0.8);
-      box-shadow: 0 -4px 20px rgba(92, 65, 43, 0.06);
-      padding: 14px 24px;
+      background: var(--save-bar-bg, rgba(247, 241, 233, 0.95));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--save-bar-border, rgba(255, 255, 255, 0.9));
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.08);
+      padding: 14px 28px;
       display: flex;
       justify-content: center;
       z-index: 100;
     }
     .save-bar-content {
       width: 100%;
-      max-width: 680px;
+      max-width: 1280px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -429,185 +635,1151 @@
       font-weight: 600;
       min-height: 18px;
     }
+
+    /* Badges */
+    .badge-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      background: var(--groq-pill-bg);
+      border: 1px solid var(--groq-pill-border);
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--groq-pill-text);
+      letter-spacing: 0.3px;
+    }
+
+    /* ══════════════════════════════════════════════════════════════ */
+    /* NO BOXES: Borderless Italian Typographic Theme Flow Stream     */
+    /* ══════════════════════════════════════════════════════════════ */
+    .theme-flow-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      margin-top: 6px;
+    }
+    .theme-flow-entry {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.12s ease, border-color 0.12s ease;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--glass-border-subtle);
+      user-select: none;
+      position: relative;
+    }
+    .theme-flow-entry:last-child {
+      border-bottom: none;
+    }
+    .theme-flow-entry:hover {
+      background: var(--card-bg-hover, rgba(255, 255, 255, 0.5));
+      transform: translateX(3px);
+    }
+    .theme-flow-entry:active {
+      transform: translateX(2px) scale(0.99);
+    }
+    .theme-flow-entry.active {
+      background: var(--theme-active-wash, rgba(155, 83, 41, 0.08));
+      border-left: 3px solid var(--primary);
+      padding-left: 15px;
+    }
+    .theme-flow-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .theme-flow-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .theme-flow-indicator {
+      font-size: 14px;
+      color: var(--primary);
+      line-height: 1;
+      display: inline-block;
+      transition: transform 0.2s ease;
+    }
+    .theme-flow-entry.active .theme-flow-indicator {
+      transform: scale(1.3);
+    }
+    .theme-flow-name {
+      font-family: var(--font-italian);
+      font-size: 20px;
+      font-weight: 600;
+      font-style: italic;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+      transition: color 0.18s ease;
+    }
+    .theme-flow-entry.active .theme-flow-name {
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .theme-flow-mood {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      opacity: 0.92;
+    }
+    .theme-flow-tag {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(125, 125, 125, 0.12);
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .theme-flow-tag.dark {
+      background: rgba(120, 120, 160, 0.18);
+      color: var(--primary);
+    }
+    .theme-flow-sub {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      padding-left: 24px;
+    }
+    .theme-flow-aside {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .theme-silk-bar {
+      width: 80px;
+      height: 8px;
+      border-radius: 999px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.22s ease;
+    }
+    .theme-flow-entry:hover .theme-silk-bar {
+      width: 100px;
+      height: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Live In-Page Simulation Preview Elements */
+    .theme-preview-box {
+      background: rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s ease;
+      min-height: 240px;
+      justify-content: center;
+    }
+    .theme-preview-snip {
+      align-self: center;
+      padding: 7px 18px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      user-select: none;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    }
+    .theme-preview-selection {
+      border-width: 1.5px;
+      border-style: dashed;
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .theme-preview-answer {
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s ease;
+      font-size: 12px;
+      user-select: none;
+    }
+    .preview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 12px;
+      padding-bottom: 2px;
+    }
+    .preview-card {
+      border-radius: 0 6px 6px 0;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      transition: all 0.2s ease;
+    }
+    .preview-card-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .preview-card-val, .preview-card-text {
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    /* Range Sliders */
+    .range-field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .range-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .range-val-badge {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 2px 8px;
+      background: var(--glass-surface-subtle);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 6px;
+      color: var(--primary);
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 6px;
+      background: rgba(184, 158, 134, 0.35);
+      border-radius: 6px;
+      outline: none;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      transition: transform 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      transition: transform 0.15s ease;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* Sticky Preview Column */
+    .sticky-preview-col {
+      position: sticky;
+      top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Responsive Grid Breakpoints */
+    @media (max-width: 1040px) {
+      .grid-2col, .grid-2col-equal {
+        grid-template-columns: 1fr;
+      }
+      .sticky-preview-col {
+        position: static;
+      }
+      .tabs-nav-bar {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 16px 12px 90px;
+      }
+      .tabs-nav-bar {
+        display: flex;
+        overflow-x: auto;
+        padding: 5px;
+      }
+      .nav-tab-btn {
+        flex: 1 0 auto;
+        min-width: 130px;
+        padding: 10px 12px;
+        font-size: 12.5px;
+      }
+      .controls-grid {
+        grid-template-columns: 1fr;
+      }
+      .header-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 18px 20px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
 
-    <!-- Header -->
+    <!-- Header Banner -->
     <div class="header-card">
       <div class="header-title">
-        <span style="font-size: 28px;">📚</span>
+        <div class="header-icon-box">🏛️</div>
         <div>
-          <h1>Homework Solver — Settings</h1>
-          <p>Configure Groq AI keys, model overrides, and solver preferences.</p>
+          <h1>Homework Solver <span style="font-family: var(--font-italian); font-style: italic; font-weight: 500; font-size: 21px; opacity: 0.85;">— Studio & Configurazione</span></h1>
+          <p>L'Arte della Precisione • High-Speed Groq AI Vision & Editorial Styling Engine</p>
         </div>
       </div>
-      <div class="provider-pill">
-        <span>⚡ Groq Dedicated</span>
+      <div class="header-badges">
+        <div class="provider-pill">
+          <span>⚡ Groq Dedicated</span>
+        </div>
       </div>
     </div>
 
-    <!-- Groq AI Keys Card -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>🔑 Groq API Keys & Model</span>
-        </div>
-        <a class="link-btn" href="https://console.groq.com/keys" target="_blank">
-          <span>Get Free Groq Key ↗</span>
-        </a>
-      </div>
-
-      <div class="field">
-        <label for="apiKey">
-          <span>API Key(s)</span>
-          <span class="field-hint" id="keyCountHint">Comma or newline separated</span>
-        </label>
-        <textarea id="apiKey" placeholder="Paste your Groq API key(s) here (starts with gsk_...)"></textarea>
-        <p class="field-hint">💡 Pro-tip: Add multiple free Groq keys separated by newlines for automatic round-robin rotation to avoid rate limits.</p>
-      </div>
-
-      <div class="field">
-        <label for="modelInput">
-          <span>Model Override (Optional)</span>
-          <span class="field-hint">Default: qwen/qwen3.8-27b</span>
-        </label>
-        <input type="text" id="modelInput" list="modelSuggestions" placeholder="e.g. qwen/qwen3.8-27b">
-        <datalist id="modelSuggestions">
-          <option value="qwen/qwen3.8-27b">
-        </datalist>
-      </div>
-
-      <div style="display: flex; gap: 10px; align-items: center;">
-        <button id="testKeysBtn" class="btn btn-secondary" type="button">
-          <span>⚡ Test Keys Now</span>
-        </button>
-      </div>
-
-      <div id="keyTestResults"></div>
+    <!-- 100% Width Horizontal Navigation Tabs Bar -->
+    <div class="tabs-nav-bar" role="tablist">
+      <button class="nav-tab-btn active" data-tab="tab-api" role="tab" aria-selected="true">
+        <span class="tab-icon">🔑</span>
+        <span class="tab-label">API & Models</span>
+      </button>
+      <button class="nav-tab-btn" data-tab="tab-solver" role="tab" aria-selected="false">
+        <span class="tab-icon">🎯</span>
+        <span class="tab-label">Preferences</span>
+      </button>
+      <button class="nav-tab-btn" data-tab="tab-snipping" role="tab" aria-selected="false">
+        <span class="tab-icon">✂️</span>
+        <span class="tab-label">Snipping Tool</span>
+      </button>
+      <button class="nav-tab-btn" data-tab="tab-answer" role="tab" aria-selected="false">
+        <span class="tab-icon">💬</span>
+        <span class="tab-label">Answer Pop-up</span>
+      </button>
+      <button class="nav-tab-btn" data-tab="tab-interface" role="tab" aria-selected="false">
+        <span class="tab-icon">🌐</span>
+        <span class="tab-label">Themes</span>
+      </button>
+      <button class="nav-tab-btn" data-tab="tab-backup" role="tab" aria-selected="false">
+        <span class="tab-icon">⌨️</span>
+        <span class="tab-label">Shortcuts & Backup</span>
+      </button>
     </div>
 
-    <!-- Default Behavior Preferences -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>🎯 Default Solver Preferences</span>
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Tab 1: API & Models (2D Horizontal & Vertical Grid) -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="tab-api" class="tab-pane active" role="tabpanel">
+      <div class="grid-2col">
+        
+        <!-- Left Tile: Groq AI Keys & Rotation -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>🔑 Groq API Keys & Rotation</span>
+              <span class="card-subtitle-flourish">Motore di Risoluzione</span>
+            </div>
+            <a class="link-btn" href="https://console.groq.com/keys" target="_blank">
+              <span>Get Free Groq Key ↗</span>
+            </a>
+          </div>
+
+          <div class="field">
+            <label for="apiKey">
+              <span>API Key(s)</span>
+              <span class="field-hint" id="keyCountHint">Comma or newline separated</span>
+            </label>
+            <textarea id="apiKey" placeholder="Paste your Groq API key(s) here (starts with gsk_...)"></textarea>
+            <p class="field-hint">💡 Pro-tip: Add multiple free Groq keys separated by newlines for automatic round-robin rotation to avoid rate limits.</p>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="testKeysBtn" class="btn btn-secondary" type="button">
+              <span>⚡ Test Keys Now</span>
+            </button>
+          </div>
+
+          <div id="keyTestResults"></div>
         </div>
-      </div>
 
-      <div class="field">
-        <label for="subjectSelect">Default Subject Domain</label>
-        <select id="subjectSelect">
-          <option value="auto">🌐 Auto / General</option>
-          <option value="aptitude-reasoning">🧩 Aptitude, Logical Reasoning & Math</option>
-          <option value="prob-stats">📊 Probability & Statistics</option>
-          <option value="dsa">⚡ Algorithms & Data Structures</option>
-          <option value="backend-dev">⚙️ Backend Development</option>
-          <option value="ai-finance">🤖 AI For Finance</option>
-          <option value="communication">💬 Verbal & Advanced Communication</option>
-        </select>
-      </div>
+        <!-- Right Column Stack: Model Selection & Quick Info -->
+        <div class="grid-col-stack">
+          <!-- Model Override Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>⚡ AI Model Override</span>
+                <span class="card-subtitle-flourish">Scelta del Modello</span>
+              </div>
+              <span class="badge-tag">Default: Qwen 3.8</span>
+            </div>
 
-      <div class="field">
-        <label for="styleSelect">Default Answer Style</label>
-        <select id="styleSelect">
-          <option value="detailed">📝 Detailed Step-by-Step Breakdown</option>
-          <option value="short">⚡ Short (Why + Final Answer)</option>
-          <option value="mcq">🔘 MCQ — Correct Option Only</option>
-        </select>
-      </div>
+            <div class="field">
+              <label for="modelInput">
+                <span>Model Override (Optional)</span>
+                <span class="field-hint">e.g. qwen/qwen3.8-27b</span>
+              </label>
+              <input type="text" id="modelInput" list="modelSuggestions" placeholder="e.g. qwen/qwen3.8-27b">
+              <datalist id="modelSuggestions">
+                <option value="qwen/qwen3.8-27b">
+                <option value="llama-3.3-70b-versatile">
+                <option value="deepseek-r1-distill-llama-70b">
+                <option value="llama-3.1-8b-instant">
+              </datalist>
+            </div>
 
-      <label class="switch-row" for="autoSelectCb">
-        <div class="switch-info">
-          <h4>⚡ Auto-Select Correct Answer on Page</h4>
-          <p>Automatically detects and checks the correct radio/checkbox on quiz portals.</p>
+            <div class="field">
+              <label style="font-size: 12px; color: var(--text-muted);">Quick-Select Recommended Models:</label>
+              <div class="chip-container">
+                <button type="button" class="chip-btn" data-model="qwen/qwen3.8-27b">qwen/qwen3.8-27b</button>
+                <button type="button" class="chip-btn" data-model="llama-3.3-70b-versatile">llama-3.3-70b</button>
+                <button type="button" class="chip-btn" data-model="deepseek-r1-distill-llama-70b">deepseek-r1-70b</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance & Architecture Card -->
+          <div class="card" style="gap: 12px; padding: 20px 24px;">
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; align-items: baseline; gap: 8px;">
+              <span>🛡️ Groq LPU Performance Engine</span>
+              <span class="card-subtitle-flourish">Esecuzione Ultra-Rapida</span>
+            </div>
+            <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.55;">
+              Queries are executed on ultra-low latency Groq LPUs (~300–800 tokens/sec). With multi-key rotation enabled, your requests dynamically failover to prevent HTTP 429 rate limit stalls.
+            </p>
+          </div>
         </div>
-        <span class="switch">
-          <input type="checkbox" id="autoSelectCb">
-          <span class="slider"></span>
-        </span>
-      </label>
+
+      </div>
     </div>
 
-    <!-- Snipping Tool & Cursor Preferences -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>🎯 Snipping Tool & Cursor Style</span>
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Tab 2: Solver Preferences (2D Horizontal & Vertical Grid) -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="tab-solver" class="tab-pane" role="tabpanel">
+      <div class="grid-col-stack">
+        
+        <div class="grid-2col-equal">
+          <!-- Domain Selection Tile -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🌐 Subject Domain Expertise</span>
+                <span class="card-subtitle-flourish">Dominio Tematico</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="subjectSelect">Default Subject Domain</label>
+              <select id="subjectSelect">
+                <option value="auto">🌐 Auto / General</option>
+                <option value="aptitude-reasoning">🧩 Aptitude, Logical Reasoning & Math</option>
+                <option value="prob-stats">📊 Probability & Statistics</option>
+                <option value="dsa">⚡ Algorithms & Data Structures</option>
+                <option value="backend-dev">⚙️ Backend Development</option>
+                <option value="ai-finance">🤖 AI For Finance</option>
+                <option value="communication">💬 Verbal & Advanced Communication</option>
+              </select>
+              <p class="field-hint">Tailors system instructions and domain reasoning heuristics specifically for your current course or exam type.</p>
+            </div>
+          </div>
+
+          <!-- Answer Style Tile -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>📝 Answer Reasoning & Depth</span>
+                <span class="card-subtitle-flourish">Profondità e Logica</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="styleSelect">Default Answer Style</label>
+              <select id="styleSelect">
+                <option value="detailed">📝 Detailed Step-by-Step Breakdown</option>
+                <option value="short">⚡ Short (Why + Final Answer)</option>
+                <option value="mcq">🔘 MCQ — Correct Option Only</option>
+              </select>
+              <p class="field-hint">Choose between comprehensive first-principles proofs, rapid concise takeaways, or instant option letters.</p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="field">
-        <label for="cursorPresetSelect">Snipping Cursor Preset</label>
-        <select id="cursorPresetSelect">
-          <option value="crosshair">➕ Crosshair (Default — Precision Reticle)</option>
-          <option value="default">↖ Default Cursor (Standard Arrow)</option>
-          <option value="custom">✨ Custom Precision Reticle / URL</option>
-        </select>
-        <p class="field-hint">Choose the pointer style displayed across the screen while selecting an area to solve.</p>
-      </div>
+        <!-- Full Width Autonomous Solve Tile -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>⚡ Autonomous Web Portal Interaction</span>
+              <span class="card-subtitle-flourish">Selezione Automatica</span>
+            </div>
+          </div>
 
-      <div class="field" id="customCursorField" style="display: none;">
-        <label for="customCursorUrlInput">
-          <span>Custom Cursor Image URL (Optional)</span>
-          <span class="field-hint">PNG, SVG, or CUR (32x32 recommended)</span>
-        </label>
-        <input type="text" id="customCursorUrlInput" placeholder="https://example.com/cursor.png (Leave blank for Neon Cyan Reticle)">
-        <p class="field-hint">Leave blank to use our built-in high-contrast Neon Cyan Sniper Reticle.</p>
-      </div>
+          <label class="switch-row" for="autoSelectCb">
+            <div class="switch-info">
+              <h4>⚡ Auto-Select Correct Answer on Page</h4>
+              <p>Automatically detects and checks the correct radio/checkbox button directly on quiz platforms (Canvas, Moodle, Blackboard, Google Forms).</p>
+            </div>
+            <span class="switch">
+              <input type="checkbox" id="autoSelectCb">
+              <span class="slider"></span>
+            </span>
+          </label>
+        </div>
 
-      <div class="cursor-preview-box" id="cursorPreviewArea">
-        <span id="cursorPreviewText">Hover inside this box to test the active snipping cursor!</span>
       </div>
     </div>
 
-    <!-- Shortcuts & Controls -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>⌨️ Keyboard & Mouse Controls</span>
-        </div>
-        <a id="openShortcutsBtn" class="link-btn" href="#">
-          <span>Customize in Chrome ↗</span>
-        </a>
-      </div>
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Tab 3: Snipping Tool & Optics (2D Horizontal & Vertical Grid)  -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="tab-snipping" class="tab-pane" role="tabpanel">
+      <div class="grid-2col">
+        
+        <!-- Left Column: Controls (Theme Palettes & Optics Sliders) -->
+        <div class="grid-col-stack">
 
-      <table class="shortcut-table">
-        <tr>
-          <td><kbd>Alt</kbd> + <kbd>C</kbd></td>
-          <td>Activate drag-and-crop snipping tool immediately on any tab</td>
-        </tr>
-        <tr>
-          <td><kbd>Alt</kbd> + <kbd>D</kbd></td>
-          <td>Close floating answer panel & overlays</td>
-        </tr>
-        <tr>
-          <td><kbd>Right-Click</kbd> or <kbd>Esc</kbd></td>
-          <td>Cancel snipping mode instantly while selecting</td>
-        </tr>
-      </table>
+          <!-- Snipping Tool Theme Card (NO BOXES, Fluid Typographic Stream) -->
+          <div class="card" id="snipThemeCard">
+            <div class="card-header">
+              <div class="card-title">
+                <span>✂️ Snipping Tool Themes</span>
+                <span class="card-subtitle-flourish">Tavolozza di Taglio</span>
+              </div>
+              <span class="badge-tag" id="snipThemeBadge">Atelier Sand (Default)</span>
+            </div>
+
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: -6px;">
+              Customize the in-page snipping tool, reticle crosshair, and crop selection box across all website tabs.
+            </p>
+
+            <!-- Toggle between Default and Customized -->
+            <label class="switch-row" for="snipThemeToggle">
+              <div class="switch-info">
+                <h4>✨ Enable Customized Snipping Tool Theme</h4>
+                <p>Switch between default Atelier Sand and curated palettes (Milano Espresso, Catppuccin, Tokyo Night, Dracula, and more).</p>
+              </div>
+              <span class="switch">
+                <input type="checkbox" id="snipThemeToggle">
+                <span class="slider"></span>
+              </span>
+            </label>
+
+            <!-- Customized Snipping Theme Section: BORDERLESS TYPOGRAPHIC FLOW -->
+            <div id="snipThemeSection" style="display: none; flex-direction: column; gap: 16px;">
+              <div class="field">
+                <label>
+                  <span>Select Snipping Tool Palette</span>
+                  <span class="field-hint">Italian Didone & Contemporary Color Harmonies</span>
+                </label>
+                <div class="theme-flow-list" id="snipThemeGrid"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Snipping Optics & Geometry Controls Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>⚙️ Snipping Optics & Geometry</span>
+                <span class="card-subtitle-flourish">Ottica e Precisione</span>
+              </div>
+            </div>
+
+            <div class="controls-grid">
+              <!-- Screen Dimming Intensity -->
+              <div class="range-field">
+                <div class="range-header">
+                  <label for="snipDimmingSlider">Screen Dimming (Backdrop)</label>
+                  <span class="range-val-badge" id="snipDimmingVal">15%</span>
+                </div>
+                <input type="range" id="snipDimmingSlider" min="0" max="85" step="5" value="15">
+                <p class="field-hint">0% = transparent; higher dims background to focus.</p>
+              </div>
+
+              <!-- Selection Border Thickness (Can go to absolute zero 0px) -->
+              <div class="range-field">
+                <div class="range-header">
+                  <label for="snipBorderThicknessSlider">Border Thickness</label>
+                  <span class="range-val-badge" id="snipBorderThicknessVal">2px</span>
+                </div>
+                <input type="range" id="snipBorderThicknessSlider" min="0" max="6" step="0.5" value="2">
+                <p class="field-hint">Outline stroke thickness of the crop selection box (0px = borderless).</p>
+              </div>
+            </div>
+
+            <div class="controls-grid">
+              <!-- Selection Fill Opacity -->
+              <div class="range-field">
+                <div class="range-header">
+                  <label for="snipFillOpacitySlider">Fill Tint Opacity</label>
+                  <span class="range-val-badge" id="snipFillOpacityVal">12%</span>
+                </div>
+                <input type="range" id="snipFillOpacitySlider" min="0" max="50" step="2" value="12">
+                <p class="field-hint">Internal tint opacity inside your crop box.</p>
+              </div>
+
+              <!-- Selection Border Line Style -->
+              <div class="field">
+                <label for="snipBorderStyleSelect">Border Line Style</label>
+                <select id="snipBorderStyleSelect" style="padding: 9px 12px; font-size: 13px;">
+                  <option value="dashed">╌╌ Dashed (Precision Crop)</option>
+                  <option value="solid">── Solid (Sharp Modern)</option>
+                  <option value="dotted">┈┈ Dotted (Subtle Minimal)</option>
+                  <option value="double">══ Double Line</option>
+                  <option value="none">🚫 None (Borderless)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="controls-grid">
+              <!-- Border Glow Toggle -->
+              <label class="switch-row" for="snipBorderGlowToggle" style="padding: 10px 14px; background: rgba(255,255,255,0.65);">
+                <div class="switch-info">
+                  <h4 style="font-size: 13px;">✨ High-Contrast Glow</h4>
+                  <p style="font-size: 11px;">Radiant drop-shadow outline.</p>
+                </div>
+                <span class="switch" style="width: 36px; height: 20px;">
+                  <input type="checkbox" id="snipBorderGlowToggle">
+                  <span class="slider"></span>
+                </span>
+              </label>
+
+              <!-- Show Hint Pill Toggle -->
+              <label class="switch-row" for="snipShowHintToggle" style="padding: 10px 14px; background: rgba(255,255,255,0.65);">
+                <div class="switch-info">
+                  <h4 style="font-size: 13px;">✂️ Shortcut Hint Pill</h4>
+                  <p style="font-size: 11px;">Show "Drag to snip" helper banner.</p>
+                </div>
+                <span class="switch" style="width: 36px; height: 20px;">
+                  <input type="checkbox" id="snipShowHintToggle">
+                  <span class="slider"></span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Live Sticky Simulation & Cursor Reticle Tester -->
+        <div class="sticky-preview-col">
+
+          <!-- Live Interactive Simulation Preview Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>👁️ Live In-Page Simulation</span>
+                <span class="card-subtitle-flourish">Anteprima dal Vivo</span>
+              </div>
+              <span class="badge-tag">Interactive</span>
+            </div>
+
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: -6px;">
+              Real-time preview of your selected theme, dimming intensity, and selection crop box.
+            </p>
+
+            <div class="theme-preview-box" id="themePreviewBox" style="min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;">
+              <div class="theme-preview-snip" id="previewSnipPill">
+                <span>✂️ Drag to snip • Right-click or Esc to cancel</span>
+              </div>
+              <div class="theme-preview-selection" id="previewSelectionBox" style="width: 260px; height: 70px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">
+                <span>🎯 Selected Area (260 × 70)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cursor Reticle & Pointer Style Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🎯 Cursor Reticle & Pointer</span>
+                <span class="card-subtitle-flourish">Mirino di Precisione</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="cursorPresetSelect">Snipping Cursor Preset</label>
+              <select id="cursorPresetSelect">
+                <option value="crosshair">➕ Crosshair (Default — Precision Reticle)</option>
+                <option value="default">↖ Default Cursor (Standard Arrow)</option>
+                <option value="custom">✨ Custom Precision Reticle / URL</option>
+              </select>
+            </div>
+
+            <div class="field" id="customCursorField" style="display: none;">
+              <label for="customCursorUrlInput">
+                <span>Custom Cursor Image URL</span>
+                <span class="field-hint">PNG, SVG, or CUR (32x32 recommended)</span>
+              </label>
+              <input type="text" id="customCursorUrlInput" placeholder="https://example.com/cursor.png (Leave blank for Neon Cyan Reticle)">
+            </div>
+
+            <div class="cursor-preview-box" id="cursorPreviewArea">
+              <span id="cursorPreviewText">Hover inside this box to test the active snipping cursor!</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
     </div>
 
-    <!-- Backup & Restore -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">
-          <span>📦 Backup & Transfer</span>
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Tab 4: Answer Pop-up UI & Geometry (2D Horizontal & Vertical Grid) -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="tab-answer" class="tab-pane" role="tabpanel">
+      <div class="grid-2col">
+        
+        <!-- Left Column: Controls (Theme Palettes & Window Optics Sliders) -->
+        <div class="grid-col-stack">
+
+          <!-- Stealth Mode Master Switch Card -->
+          <div class="card" id="answerStealthCard" style="border: 1px solid rgba(139, 92, 246, 0.35); background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(0, 0, 0, 0.02));">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🥷 Stealth Mode</span>
+                <span class="card-subtitle-flourish">Modalità Invisibile</span>
+              </div>
+              <span class="badge-tag" id="stealthActiveBadge" style="background: rgba(139, 92, 246, 0.15); color: #7c3aed; border-color: rgba(139, 92, 246, 0.3); font-size: 11px;">Ghost Watermark</span>
+            </div>
+
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: -6px;">
+              Forces a completely transparent background with a minimal 2px blur and zero borders, glow, or hover effects. Completely discreet and undetectable to bystanders or screen sharing.
+            </p>
+
+            <label class="switch-row" for="answerStealthToggle" style="margin-bottom: 0;">
+              <div class="switch-info">
+                <h4>Activate Stealth Ghost Mode</h4>
+                <p>Locks standard popup styling into an ultra-subtle, undetectable transparent overlay with 2px blur.</p>
+              </div>
+              <span class="switch">
+                <input type="checkbox" id="answerStealthToggle">
+                <span class="slider"></span>
+              </span>
+            </label>
+
+            <div id="stealthNotice" style="display: none; margin-top: 12px; padding: 10px 14px; border-radius: 8px; background: rgba(124, 58, 237, 0.08); border-left: 3px solid #7c3aed; font-size: 12.5px; color: #6d28d9; line-height: 1.45;">
+              🔒 <strong>Stealth Mode is Active:</strong> All styling and color customizations below are bypassed. The pop-up is rendered transparent with 2px blur, zero borders, and zero hover or glow effects.
+            </div>
+          </div>
+
+          <!-- Customization Container (Locked/dimmed when stealth mode is active) -->
+          <div id="answerCustomizationWrapper" class="grid-col-stack" style="transition: all 0.25s ease;">
+
+            <!-- Answer Pop-up Theme Card (NO BOXES, Fluid Typographic Stream) -->
+            <div class="card" id="answerThemeCard">
+              <div class="card-header">
+                <div class="card-title">
+                  <span>💬 Answer Pop-up Themes</span>
+                  <span class="card-subtitle-flourish">Tavolozza Risposta</span>
+                </div>
+                <span class="badge-tag" id="answerThemeBadge">Atelier Sand (Default)</span>
+              </div>
+
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: -6px;">
+                Customize the color palette, cards, and editorial contrast of the floating solution window displayed directly on your web pages.
+              </p>
+
+              <!-- Toggle between Default and Customized -->
+              <label class="switch-row" for="answerThemeToggle">
+                <div class="switch-info">
+                  <h4>✨ Enable Customized Answer Pop-up Theme</h4>
+                  <p>Switch between default Atelier Sand and curated palettes (Milano Espresso, Catppuccin, Tokyo Night, Dracula, and more).</p>
+                </div>
+                <span class="switch">
+                  <input type="checkbox" id="answerThemeToggle">
+                  <span class="slider"></span>
+                </span>
+              </label>
+
+              <!-- Customized Answer Theme Section: BORDERLESS TYPOGRAPHIC FLOW -->
+              <div id="answerThemeSection" style="display: none; flex-direction: column; gap: 16px;">
+                <div class="field">
+                  <label>
+                    <span>Select Floating Answer Window Palette</span>
+                    <span class="field-hint">Italian Didone & Contemporary Color Harmonies</span>
+                  </label>
+                  <div class="theme-flow-list" id="answerTabThemeGrid"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Window Custom Color Card -->
+            <div class="card" id="answerCustomColorCard">
+              <div class="card-header">
+                <div class="card-title">
+                  <span>🎨 Window Custom Color</span>
+                  <span class="card-subtitle-flourish">Colori Personalizzati</span>
+                </div>
+              </div>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: -6px;">
+                Override theme palette colors with your own custom background, text, and border/accent colors.
+              </p>
+              <label class="switch-row" for="answerCustomColorToggle">
+                <div class="switch-info">
+                  <h4>Enable Custom Window Colors</h4>
+                  <p>Fine-tune custom background and text colors for the answer pop-up.</p>
+                </div>
+                <span class="switch">
+                  <input type="checkbox" id="answerCustomColorToggle">
+                  <span class="slider"></span>
+                </span>
+              </label>
+              <div id="answerCustomColorPickers" style="display: none; margin-top: 14px; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                <div class="field" style="margin: 0;">
+                  <label style="font-size: 12px; font-weight: 600;">Background Color</label>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
+                    <input type="color" id="answerCustomBgColorPicker" value="#181825" style="width: 36px; height: 36px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent;">
+                    <input type="text" id="answerCustomBgColorText" value="#181825" style="font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; width: 85px;">
+                  </div>
+                </div>
+                <div class="field" style="margin: 0;">
+                  <label style="font-size: 12px; font-weight: 600;">Text Color</label>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
+                    <input type="color" id="answerCustomTextColorPicker" value="#cdd6f4" style="width: 36px; height: 36px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent;">
+                    <input type="text" id="answerCustomTextColorText" value="#cdd6f4" style="font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; width: 85px;">
+                  </div>
+                </div>
+                <div class="field" style="margin: 0;">
+                  <label style="font-size: 12px; font-weight: 600;">Border / Accent Color</label>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
+                    <input type="color" id="answerCustomBorderColorPicker" value="#89b4fa" style="width: 36px; height: 36px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent;">
+                    <input type="text" id="answerCustomBorderColorText" value="#89b4fa" style="font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; width: 85px;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Answer Pop-up Optics & Geometry Controls Card -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">
+                  <span>⚙️ Answer Pop-up Optics & Geometry</span>
+                  <span class="card-subtitle-flourish">Geometria e Stile</span>
+                </div>
+              </div>
+
+              <div class="controls-grid">
+                <!-- Window Border Thickness (Can go to absolute zero 0px) -->
+                <div class="range-field">
+                  <div class="range-header">
+                    <label for="answerBorderThicknessSlider">Border Thickness</label>
+                    <span class="range-val-badge" id="answerBorderThicknessVal">1px</span>
+                  </div>
+                  <input type="range" id="answerBorderThicknessSlider" min="0" max="6" step="0.5" value="1">
+                  <p class="field-hint">0px = borderless floating card; higher = crisp outline.</p>
+                </div>
+
+                <!-- Window Corner Radius -->
+                <div class="range-field">
+                  <div class="range-header">
+                    <label for="answerBorderRadiusSlider">Corner Rounding (Radius)</label>
+                    <span class="range-val-badge" id="answerBorderRadiusVal">14px</span>
+                  </div>
+                  <input type="range" id="answerBorderRadiusSlider" min="0" max="24" step="2" value="14">
+                  <p class="field-hint">0px = sharp modern corners; 14px = soft curved.</p>
+                </div>
+              </div>
+
+              <div class="controls-grid">
+                <!-- Window Width -->
+                <div class="range-field">
+                  <div class="range-header">
+                    <label for="answerWidthSlider">Window Width</label>
+                    <span class="range-val-badge" id="answerWidthVal">350px</span>
+                  </div>
+                  <input type="range" id="answerWidthSlider" min="260" max="460" step="10" value="350">
+                  <p class="field-hint">Horizontal width of the floating solution panel.</p>
+                </div>
+
+                <!-- Window Background Opacity (expanded from 10% to 100%) -->
+                <div class="range-field">
+                  <div class="range-header">
+                    <label for="answerOpacitySlider">Surface Opacity / Density</label>
+                    <span class="range-val-badge" id="answerOpacityVal">98%</span>
+                  </div>
+                  <input type="range" id="answerOpacitySlider" min="10" max="100" step="1" value="98">
+                  <p class="field-hint">Translucent sheet (10%) to solid matte (100%).</p>
+                </div>
+              </div>
+
+              <div class="controls-grid">
+                <!-- Window Backdrop Blur -->
+                <div class="range-field">
+                  <div class="range-header">
+                    <label for="answerBlurSlider">Backdrop Blur</label>
+                    <span class="range-val-badge" id="answerBlurVal">14px</span>
+                  </div>
+                  <input type="range" id="answerBlurSlider" min="0" max="40" step="1" value="14">
+                  <p class="field-hint">0px = sharp background bleed; 14px+ = frosted glass blur.</p>
+                </div>
+
+                <!-- Content Font Size -->
+                <div class="range-field">
+                  <div class="range-header">
+                    <label for="answerFontSizeSlider">Content Font Size</label>
+                    <span class="range-val-badge" id="answerFontSizeVal">13px</span>
+                  </div>
+                  <input type="range" id="answerFontSizeSlider" min="11" max="16" step="0.5" value="13">
+                  <p class="field-hint">Body typography legibility scale.</p>
+                </div>
+              </div>
+
+              <div class="controls-grid">
+                <!-- Border Line Style -->
+                <div class="field">
+                  <label for="answerBorderStyleSelect">Border Line Style</label>
+                  <select id="answerBorderStyleSelect" style="padding: 9px 12px; font-size: 13px;">
+                    <option value="solid">── Solid Line (Crisp Clean)</option>
+                    <option value="dashed">╌╌ Dashed Line</option>
+                    <option value="dotted">┈┈ Dotted Line</option>
+                    <option value="double">══ Double Line</option>
+                    <option value="none">🚫 None (Pure Borderless)</option>
+                  </select>
+                </div>
+
+                <!-- Header Drag Bar Toggle -->
+                <label class="switch-row" for="answerDragBarToggle" style="padding: 10px 14px; background: rgba(255,255,255,0.65); align-self: end;">
+                  <div class="switch-info">
+                    <h4 style="font-size: 13px;">✋ Header Drag Handle</h4>
+                    <p style="font-size: 11px;">Grip strip to move overlay across screen.</p>
+                  </div>
+                  <span class="switch" style="width: 36px; height: 20px;">
+                    <input type="checkbox" id="answerDragBarToggle" checked>
+                    <span class="slider"></span>
+                  </span>
+                </label>
+              </div>
+
+              <div class="controls-grid">
+                <!-- Auto-Copy to Clipboard Toggle -->
+                <label class="switch-row" for="answerAutoCopyToggle" style="padding: 10px 14px; background: rgba(255,255,255,0.65);">
+                  <div class="switch-info">
+                    <h4 style="font-size: 13px;">📋 Auto-Copy Answer</h4>
+                    <p style="font-size: 11px;">Copy solution directly to clipboard when solved.</p>
+                  </div>
+                  <span class="switch" style="width: 36px; height: 20px;">
+                    <input type="checkbox" id="answerAutoCopyToggle">
+                    <span class="slider"></span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+
         </div>
+
+        <!-- Right Column: Live Sticky Answer Pop-up Simulation -->
+        <div class="sticky-preview-col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>👁️ Live Answer Pop-up Simulation</span>
+                <span class="card-subtitle-flourish">Anteprima dal Vivo</span>
+              </div>
+              <span class="badge-tag">Interactive</span>
+            </div>
+
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: -6px;">
+              Real-time preview of your solution window: dimensions, border, rounding, and color tokens.
+            </p>
+
+            <div class="theme-preview-box" id="answerPreviewBackdrop" style="min-height: 320px; display: flex; align-items: center; justify-content: center; padding: 24px 16px;">
+              <div id="answerPreviewContainer" style="width: 350px; max-width: 100%; border-radius: 14px; padding: 12px 16px; box-sizing: border-box; transition: all 0.2s ease;">
+                <div id="answerPreviewDragHead" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 8px; margin-bottom: 10px;">
+                  <span id="answerPreviewDragTitle" style="font-family: var(--font-italian); font-style: italic; font-weight: 600; font-size: 13.5px;">🎯 Risposta • Floating Solution</span>
+                  <span style="opacity: 0.6; font-size: 11px;">✕</span>
+                </div>
+                <div id="answerPreviewWhyBox" class="hs-card" style="border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 9px; line-height: 1.45;">
+                  <div id="answerPreviewWhyTag" style="font-family: var(--font-italian); font-style: italic; font-size: 11.5px; font-weight: 700; margin-bottom: 3px;">MOTIVAZIONE • WHY</div>
+                  <div id="answerPreviewWhyContent" style="font-size: 12.5px;">Using first-principles formula derivation to verify step-by-step logic with guaranteed high contrast.</div>
+                </div>
+                <div id="answerPreviewCorrectBox" class="hs-card" style="border-radius: 0 8px 8px 0; padding: 8px 12px; line-height: 1.45;">
+                  <div id="answerPreviewCorrectTag" style="font-family: var(--font-italian); font-style: italic; font-size: 11.5px; font-weight: 700; margin-bottom: 3px;">OPZIONE CORRETTA • CORRECT OPTION</div>
+                  <div id="answerPreviewCorrectValue" style="font-size: 13px; font-weight: 700;">Option B — 42.5 Joules <span id="answerPreviewAutoBadge" style="font-size: 10px; font-weight: 700; margin-left: 6px;">(⚡ Selected on Page)</span></div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+                  <span id="answerPreviewCopyBtn" style="padding: 5px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600; cursor: default; border: 1px solid transparent;">⎘ Copy Answer</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
-      <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
-        Easily export your configured keys and settings to JSON, or restore them onto another device or browser profile.
-      </p>
-      <div style="display: flex; gap: 10px;">
-        <button id="exportKeysBtn" class="btn btn-secondary" type="button">
-          <span>📤 Copy Backup JSON</span>
-        </button>
-        <button id="importKeysBtn" class="btn btn-secondary" type="button">
-          <span>📥 Restore from Backup</span>
-        </button>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Tab 4: Interface & Extension Popup Themes (2D Grid, NO BOXES) -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="tab-interface" class="tab-pane" role="tabpanel">
+      <div class="grid-2col">
+        
+        <!-- Left: Main Theme Customizer -->
+        <div class="card" id="tabThemeCard">
+          <div class="card-header">
+            <div class="card-title">
+              <span>🌐 Settings Tab & Extension Popup Themes</span>
+              <span class="card-subtitle-flourish">Estetica Globale</span>
+            </div>
+            <span class="badge-tag" id="tabThemeBadge">Atelier Sand (Default)</span>
+          </div>
+
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: -6px;">
+            Customize the color palette of this More Settings browser page and the Chrome extension toolbar popup.
+          </p>
+
+          <!-- Toggle between Default and Customized -->
+          <label class="switch-row" for="tabThemeToggle">
+            <div class="switch-info">
+              <h4>✨ Enable Customized Settings Tab & Popup Theme</h4>
+              <p>Transform this settings tab and the toolbar popup with curated color schemes.</p>
+            </div>
+            <span class="switch">
+              <input type="checkbox" id="tabThemeToggle">
+              <span class="slider"></span>
+            </span>
+          </label>
+
+          <!-- Customized Tab Theme Section: BORDERLESS TYPOGRAPHIC FLOW -->
+          <div id="tabThemeSection" style="display: none; flex-direction: column; gap: 16px;">
+            <div class="field">
+              <label>
+                <span>Select Settings Tab & Popup Palette</span>
+                <span class="field-hint">Pure Typography • Silk Gradient Ribbons</span>
+              </label>
+              <div class="theme-flow-list" id="tabThemeGrid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Information & Theme Architecture -->
+        <div class="grid-col-stack">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🎨 Independent Styling Scope</span>
+                <span class="card-subtitle-flourish">Architettura Modulare</span>
+              </div>
+            </div>
+            <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+              Themes in Homework Solver are designed with complete modular independence:
+            </p>
+            <ul style="font-size: 12px; color: var(--text-secondary); line-height: 1.65; padding-left: 18px;">
+              <li><strong>✂️ Snipping & Floating Answer Pop-up</strong>: Only styles in-page overlays without touching the rest of your browser or websites.</li>
+              <li><strong>🌐 Settings Tab & Toolbar Popup</strong>: Customizes extension panels, forms, navigation tabs, and dialogs.</li>
+              <li>Both scopes can use the exact same theme or distinct palettes according to your workflow.</li>
+              <li>Every single palette undergoes strict WCAG AAA contrast testing to guarantee text is never the same color as the background.</li>
+            </ul>
+          </div>
+        </div>
+
       </div>
-      <div id="backupStatus" style="font-size: 11.5px; min-height: 14px;"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Tab 5: Keyboard Shortcuts & Backup (2D Grid) -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="tab-backup" class="tab-pane" role="tabpanel">
+      <div class="grid-2col-equal">
+        
+        <!-- Left: Shortcuts & Controls -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>⌨️ Keyboard & Mouse Controls</span>
+              <span class="card-subtitle-flourish">Scorciatoie Rapide</span>
+            </div>
+            <a id="openShortcutsBtn" class="link-btn" href="#">
+              <span>Customize in Chrome ↗</span>
+            </a>
+          </div>
+
+          <table class="shortcut-table">
+            <tr>
+              <td><kbd>Alt</kbd> + <kbd>C</kbd></td>
+              <td>Activate drag-and-crop snipping tool immediately on any tab</td>
+            </tr>
+            <tr>
+              <td><kbd>Alt</kbd> + <kbd>D</kbd></td>
+              <td>Close floating answer panel & in-page overlays</td>
+            </tr>
+            <tr>
+              <td><kbd>Right-Click</kbd> or <kbd>Esc</kbd></td>
+              <td>Cancel snipping mode instantly while selecting an area</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Right: Backup & Portability -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>📦 Backup & Transfer</span>
+              <span class="card-subtitle-flourish">Archivio e Portabilità</span>
+            </div>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+            Easily export your configured keys, themes, optics, and solver preferences to JSON, or restore them onto another device or browser profile.
+          </p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="exportKeysBtn" class="btn btn-secondary" type="button">
+              <span>📤 Copy Backup JSON</span>
+            </button>
+            <button id="importKeysBtn" class="btn btn-secondary" type="button">
+              <span>📥 Restore from Backup</span>
+            </button>
+          </div>
+          <div id="backupStatus" class="save-status"></div>
+        </div>
+
+      </div>
     </div>
 
   </div>
@@ -623,6 +1795,7 @@
     </div>
   </div>
 
+  <script src="themes.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
