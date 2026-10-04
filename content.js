@@ -14,7 +14,7 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 let isSnipping = false;
 let startX, startY, selectionBox;
 let screenshotDataUrl = null;
-let lastCroppedBase64 = null;
+let lastCroppedBase64 = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem("hs_last_crop") : null;
 let savedOverlayPos = null;
 
 let currentSnipCursor = "crosshair";
@@ -656,6 +656,11 @@ function cropAndSolve(x1, y1, x2, y2) {
     // 0.85 JPEG quality provides sharp text without heavy compression artifacts
     const croppedBase64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
     lastCroppedBase64 = croppedBase64;
+    try {
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem("hs_last_crop", croppedBase64);
+      }
+    } catch (e) {}
     callAPI(croppedBase64);
   };
   img.src = screenshotDataUrl;
@@ -879,8 +884,10 @@ async function callAPI(b64, { forceStyle } = {}) {
 TWO-STEP REASONING PROTOCOL:
 Solve the problem in two disciplined steps inside <think>...</think> tags:
 <think>
-Step 1 (Deconstruct & Solve): Parse parameters, constraints (NOT/EXCEPT), and compute the exact solution from first principles.
-Step 2 (Verify & Finalize): Sanity check against all options, eliminate wrong options, and confirm the singular correct choice.
+Step 1 (Deconstruct & Solve):
+- Check selector markers: SQUARE CHECKBOXES (☐ / [ ]) denote a MULTI-SELECT question where one, multiple, or all options can be correct. CIRCULAR RADIO BUTTONS (○ / ( )) denote a SINGLE-CHOICE question (strictly one correct choice).
+- Parse parameters, constraints (NOT, EXCEPT, LEAST, TRUE, FALSE), and compute the exact solution from first principles.
+Step 2 (Verify & Finalize): Sanity check against all options. For single choice, verify the singular correct choice and eliminate distractors. For multi-select, evaluate each option independently and identify ALL valid correct options.
 </think>
 CRITICAL CONSTRAINT: Keep internal reasoning CONCISE (under 120 words). Do NOT ramble. Conclude with </think> immediately upon verifying the answer, then output the final answer outside <think>.
 `;
@@ -888,13 +895,13 @@ CRITICAL CONSTRAINT: Keep internal reasoning CONCISE (under 120 words). Do NOT r
   const systemPrompts = {
     detailed: `${domainIntro}\n${reasoningProtocol}\nCODING INSTRUCTION: If this is a coding question or asks for a program, function, method, query, or algorithm, output ONLY the pure functional code in the language specified or implied outside <think> tags. Absolutely NO explanations, NO markdown intro/outro, NO plan, and NO comments inside or outside the code. For non-coding questions, provide a clear, direct, structured step-by-step breakdown outside <think> tags.`,
     short: `${domainIntro}\n${reasoningProtocol}\nCODING INSTRUCTION: If this is a coding question, output ONLY the pure code outside <think> tags with zero comments and zero explanations. Otherwise, outside <think> tags, respond with EXACTLY two lines and nothing else:\nWhy: <one short line explaining why this answer is correct>\nFinal Answer: <the direct final answer>`,
-    mcq: `${domainIntro}\n${reasoningProtocol}\nMCQ INSTRUCTION: Execute Step 1 and Step 2 inside <think> tags to determine and verify the correct option. Then, OUTSIDE <think> tags, respond with EXACTLY two lines and nothing else:\nWhy: <one short line summarizing why this option is correct>\nCorrect Option: <Option Letter> — <full option text>`
+    mcq: `${domainIntro}\n${reasoningProtocol}\nMCQ INSTRUCTION: Execute Step 1 and Step 2 inside <think> tags. Check if options are square checkboxes (multi-select / select all that apply) or circular radio buttons (single choice). Then, OUTSIDE <think> tags, respond with EXACTLY two lines and nothing else:\nWhy: <one short line summarizing why the selected option(s) are correct>\nCorrect Option(s): <Option Letter(s)> — <full option text(s)> (For multi-select, list all correct options, e.g. "Options B, C — [Option B text] | [Option C text]")`
   };
 
   const userPrompts = {
     detailed: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. If this is a coding problem, output ONLY the complete code outside <think> with NO comments, NO explanations, and NO surrounding text. Otherwise output the clean step-by-step solution.",
     short: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. If this is a coding problem, output ONLY the code without comments or text. Otherwise outside <think>, output exactly two lines: Why: <explanation> and Final Answer: <the answer>.",
-    mcq: "Solve the MCQ in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, output exactly two lines: Why: <explanation> and Correct Option: <Letter> — <full option text>."
+    mcq: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Check if the options have square checkboxes (multi-select / select all that apply) or circular radio buttons (single choice). Outside <think>, output exactly two lines: Why: <explanation> and Correct Option(s): <Letter(s)> — <full text>."
   };
 
   // Output token budget: 750 tokens gives more than 3x headroom for concise
@@ -996,7 +1003,8 @@ CRITICAL CONSTRAINT: Keep internal reasoning CONCISE (under 120 words). Do NOT r
       style: answerStyle,
       truncated: phase1.truncated,
       autoSelect,
-      meta: { provider: "Groq", keyIndex: primaryCfg.keyIndex, totalKeys: primaryCfg.totalKeys }
+      meta: { provider: "Groq", keyIndex: primaryCfg.keyIndex, totalKeys: primaryCfg.totalKeys },
+      isDerivation: forceStyle === "detailed"
     });
     return;
   }
@@ -1067,7 +1075,8 @@ CRITICAL CONSTRAINT: Keep internal reasoning CONCISE (under 120 words). Do NOT r
         style: answerStyle,
         truncated: res.truncated,
         autoSelect,
-        meta: { provider: "Groq", keyIndex: fallbackCfg.keyIndex, totalKeys: fallbackCfg.totalKeys, fallback: true }
+        meta: { provider: "Groq", keyIndex: fallbackCfg.keyIndex, totalKeys: fallbackCfg.totalKeys, fallback: true },
+        isDerivation: forceStyle === "detailed"
       });
       return;
     }
@@ -1169,8 +1178,8 @@ function parseAnswer(text) {
     const unbold = line.replace(/^\*\*|\*\*$/g, "").trim();
     if (/^(?:\*{0,2})why\s*:/i.test(unbold)) {
       parts.why = unbold.replace(/^(?:\*{0,2})why\s*:\s*(?:\*\*)?/i, "").trim();
-    } else if (/^(?:\*{0,2})(?:the\s+)?(?:correct\s+)?(?:option|answer)\s*(?::|is)\s*/i.test(unbold)) {
-      parts.correct = unbold.replace(/^(?:\*{0,2})(?:the\s+)?(?:correct\s+)?(?:option|answer)\s*(?::|is)\s*(?:\*\*)?/i, "").trim();
+    } else if (/^(?:\*{0,2})(?:the\s+)?(?:correct\s+)?(?:options?|answers?)\s*(?:\([sS]\))?\s*(?::|is)\s*/i.test(unbold)) {
+      parts.correct = unbold.replace(/^(?:\*{0,2})(?:the\s+)?(?:correct\s+)?(?:options?|answers?)\s*(?:\([sS]\))?\s*(?::|is)\s*(?:\*\*)?/i, "").trim();
     } else if (/^(?:\*{0,2})final\s+answer\s*(?::|is)\s*/i.test(unbold)) {
       parts.final = unbold.replace(/^(?:\*{0,2})final\s+answer\s*(?::|is)\s*(?:\*\*)?/i, "").trim();
     } else {
@@ -1579,102 +1588,197 @@ function showLoadingOverlay(statusText = "Solving question...") {
   document.getElementById("hs-close").onclick = removeExistingOverlay;
 }
 
-// ── Auto-select MCQ option on webpage DOM ───────────
-function selectOptionOnPage(optionText) {
-  if (!optionText) return false;
-  
-  let letter = "";
-  let answerContent = optionText.toLowerCase();
+// ── Auto-select MCQ / MSQ option on webpage DOM ───────────
+function extractOptionTargets(rawText) {
+  if (!rawText) return [];
+  const targets = [];
+  const lines = rawText.split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
 
-  const match = optionText.match(/^(?:Option\s*)?([A-D1-4])\b[\s\)\.\:\—\-]*([\s\S]*)$/i);
-  if (match) {
-    letter = match[1].toUpperCase();
-    if (match[2]) {
-      answerContent = match[2].trim().toLowerCase();
+  for (const line of lines) {
+    // Check if line contains multiple letters like "Options B, C — ...", "Options B and C", "B, C"
+    const multiLetterMatch = line.match(/(?:Options?|Ans(?:wer)?s?)\s*[:\—\-]?\s*([A-D1-4](?:\s*[,&/and]+\s*[A-D1-4])+)/i);
+    if (multiLetterMatch) {
+      const letters = multiLetterMatch[1].match(/[A-D1-4]/gi) || [];
+      const remainder = line.slice(multiLetterMatch[0].length).replace(/^[\s\:\—\-]+/, "").trim();
+      const contentParts = remainder.split(/[\/|;]+/).map(s => s.trim());
+      letters.forEach((l, idx) => {
+        targets.push({
+          letter: l.toUpperCase(),
+          content: (contentParts[idx] || remainder || "").toLowerCase()
+        });
+      });
+      continue;
+    }
+
+    // Try single option pattern: "Option B — some text"
+    const singleMatch = line.match(/^(?:Options?\s*)?([A-D1-4])\b[\s\)\.\:\—\-]*([\s\S]*)$/i);
+    if (singleMatch) {
+      targets.push({
+        letter: singleMatch[1].toUpperCase(),
+        content: (singleMatch[2] || "").trim().toLowerCase()
+      });
+    } else {
+      targets.push({
+        letter: "",
+        content: line.toLowerCase()
+      });
     }
   }
+
+  // Deduplicate
+  const unique = [];
+  const seen = new Set();
+  for (const t of targets) {
+    const key = t.letter ? `letter_${t.letter}` : `content_${t.content}`;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      unique.push(t);
+    }
+  }
+  return unique.length ? unique : [{ letter: "", content: rawText.trim().toLowerCase() }];
+}
+
+function selectOptionOnPage(optionText) {
+  if (!optionText) return { success: false, total: 0, count: 0 };
+  
+  const targets = extractOptionTargets(optionText);
+  if (!targets.length) return { success: false, total: 0, count: 0 };
 
   const triggerClick = (el) => {
-    try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){}
-    el.click();
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    return true;
-  };
-
-  const isMatch = (txt) => {
-    txt = (txt || "").trim().toLowerCase();
-    if (!txt) return false;
-    
-    // Match by content
-    if (answerContent && answerContent.length > 1) {
-       if (txt.includes(answerContent) || answerContent.includes(txt)) {
-         return true;
-       }
-    }
-    
-    // Match by letter
-    if (letter) {
-      if (txt.startsWith(`(${letter.toLowerCase()})`) || 
-          txt.startsWith(`${letter.toLowerCase()})`) || 
-          txt.startsWith(`${letter.toLowerCase()}.`) || 
-          (txt.split(/[\s\)\.\-]/)[0] === letter.toLowerCase())) {
+    try {
+      // Do not re-click already checked checkboxes to avoid unchecking them!
+      if (el.tagName === "INPUT" && el.type === "checkbox") {
+        if (el.checked) return true;
+      } else if (el.getAttribute("aria-checked") === "true") {
         return true;
       }
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.click();
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    } catch(e) {
+      return false;
     }
-    return false;
   };
 
-  // 1. Search radio/checkbox inputs on page
-  const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"], [role="radio"], [role="checkbox"]'));
-  for (const input of inputs) {
-    let contextText = "";
-    if (input.labels && input.labels.length > 0) {
-      contextText = Array.from(input.labels).map(l => l.innerText || l.textContent).join(" ");
-    } else if (input.parentElement) {
-      contextText = input.parentElement.innerText || input.parentElement.textContent || "";
-      if (contextText.length > 150 && input.nextSibling) {
+  let successCount = 0;
+  const clickedElements = new Set();
+
+  for (const target of targets) {
+    const letter = target.letter;
+    const answerContent = target.content;
+
+    const isMatch = (txt) => {
+      txt = (txt || "").trim().toLowerCase();
+      if (!txt) return false;
+      
+      // Match by content
+      if (answerContent && answerContent.length > 2) {
+        if (txt.includes(answerContent) || answerContent.includes(txt)) {
+          return true;
+        }
+      }
+      
+      // Match by letter
+      if (letter) {
+        if (txt.startsWith(`(${letter.toLowerCase()})`) || 
+            txt.startsWith(`${letter.toLowerCase()})`) || 
+            txt.startsWith(`${letter.toLowerCase()}.`) || 
+            (txt.split(/[\s\)\.\-]/)[0] === letter.toLowerCase())) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    let matched = false;
+
+    // 1. Search radio/checkbox inputs on page
+    const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"], [role="radio"], [role="checkbox"]'));
+    for (const input of inputs) {
+      if (clickedElements.has(input)) continue;
+      let contextText = "";
+      if (input.labels && input.labels.length > 0) {
+        contextText = Array.from(input.labels).map(l => l.innerText || l.textContent).join(" ");
+      } else if (input.parentElement) {
+        contextText = input.parentElement.innerText || input.parentElement.textContent || "";
+        if (contextText.length > 150 && input.nextSibling) {
           contextText = input.nextSibling.textContent || "";
+        }
+      }
+
+      if (contextText.length < 250 && isMatch(contextText)) {
+        triggerClick(input);
+        clickedElements.add(input);
+        matched = true;
+        break;
       }
     }
 
-    if (contextText.length < 250 && isMatch(contextText)) {
-      return triggerClick(input);
+    if (matched) {
+      successCount++;
+      continue;
+    }
+
+    // 2. Search clickable option containers
+    const clickables = Array.from(document.querySelectorAll('label, button, li, div[class*="option"], div[class*="choice"], div[class*="answer"], div[class*="mcq"], div[class*="radio"], div[class*="checkbox"], [role="button"]'));
+    for (const el of clickables) {
+      if (el.closest('#hs-answer-overlay') || clickedElements.has(el)) continue;
+      const txt = (el.innerText || el.textContent || "").trim();
+      if (!txt || txt.length > 250) continue;
+
+      if (isMatch(txt)) {
+        triggerClick(el);
+        clickedElements.add(el);
+        matched = true;
+        break;
+      }
+    }
+
+    if (matched) {
+      successCount++;
+      continue;
+    }
+
+    // 3. Aggressive fallback: find any matching text element and look for a control nearby
+    const allTags = Array.from(document.querySelectorAll('span, div, p, td'));
+    for (const tag of allTags) {
+      if (tag.closest('#hs-answer-overlay') || clickedElements.has(tag)) continue;
+      const t = (tag.innerText || tag.textContent || "").trim();
+      if (t.length > 0 && t.length < 150 && isMatch(t)) {
+        let control = tag.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]') ||
+                      tag.parentElement?.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]') ||
+                      tag.closest('li, tr, .option, .choice')?.querySelector('input[type="radio"], input[type="checkbox"]');
+        
+        if (control && !clickedElements.has(control)) {
+          triggerClick(control);
+          clickedElements.add(control);
+          matched = true;
+          break;
+        } else if (!clickedElements.has(tag)) {
+          triggerClick(tag);
+          clickedElements.add(tag);
+          matched = true;
+          break;
+        }
+      }
+    }
+
+    if (matched) {
+      successCount++;
     }
   }
 
-  // 2. Search clickable option containers
-  const clickables = Array.from(document.querySelectorAll('label, button, li, div[class*="option"], div[class*="choice"], div[class*="answer"], div[class*="mcq"], div[class*="radio"], [role="button"]'));
-  for (const el of clickables) {
-    if (el.closest('#hs-answer-overlay')) continue;
-    const txt = (el.innerText || el.textContent || "").trim();
-    if (!txt || txt.length > 250) continue;
-
-    if (isMatch(txt)) {
-      return triggerClick(el);
-    }
-  }
-
-  // 3. Aggressive fallback: find any matching text element and look for a radio button nearby
-  const allTags = Array.from(document.querySelectorAll('span, div, p, td'));
-  for (const tag of allTags) {
-    if (tag.closest('#hs-answer-overlay')) continue;
-    const t = (tag.innerText || tag.textContent || "").trim();
-    if (t.length > 0 && t.length < 150 && isMatch(t)) {
-      let radio = tag.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]');
-      if (!radio) radio = tag.parentElement?.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]');
-      if (!radio) radio = tag.closest('li, tr, .option, .choice')?.querySelector('input[type="radio"], input[type="checkbox"]');
-      
-      if (radio) return triggerClick(radio);
-      return triggerClick(tag);
-    }
-  }
-
-  return false;
+  return {
+    success: successCount > 0,
+    total: targets.length,
+    count: successCount
+  };
 }
 
 // ── Answer overlay — bottom left ───────────────────
-function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) {
+function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDerivation } = {}) {
   const existing = document.getElementById("hs-answer-overlay");
   if (existing) {
     saveCurrentOverlayPosition(existing);
@@ -1707,8 +1811,8 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
     color: ${inp.overlayTextPrimary};
     overflow-y: auto;
     box-sizing: border-box;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: ${colorWithAlpha(inp.overlayTextMuted, 0.4)} transparent;
     user-select: text;
     -webkit-user-select: text;
     transform: translateZ(0);
@@ -1739,12 +1843,17 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
     if (parts.correct) {
       let autoSelectStatus = "";
       if (autoSelect) {
-        const success = selectOptionOnPage(parts.correct);
-        autoSelectStatus = success ? ` <span style="font-size: 10px; color: #059669; font-weight: 700;">✓</span>` : "";
+        const selRes = selectOptionOnPage(parts.correct);
+        if (selRes && selRes.success) {
+          const detail = (selRes.total > 1) ? ` ${selRes.count}/${selRes.total}` : "";
+          autoSelectStatus = ` <span style="font-size: 10px; color: #059669; font-weight: 700;">✓${detail}</span>`;
+        } else {
+          autoSelectStatus = ` <span style="font-size: 10px; color: #d97706; font-weight: 700;">⚠️</span>`;
+        }
       }
       formattedHtml += `
         <div class="hs-stealth-row" style="margin-bottom: 7px; font-size: ${currentAnswerFontSize + 0.5}px; font-weight: 600; line-height: 1.45; color: ${inp.cardValue};">
-          <span class="hs-card-label" style="font-weight: 700; color: ${inp.cardLabel}; margin-right: 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px;">Option</span>
+          <span class="hs-card-label" style="font-weight: 700; color: ${inp.cardLabel}; margin-right: 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px;">Option(s)</span>
           ${escapeHtml(parts.correct)}${autoSelectStatus}
         </div>
       `;
@@ -1778,15 +1887,18 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
     if (parts.correct) {
       let autoSelectStatus = "";
       if (autoSelect) {
-        const success = selectOptionOnPage(parts.correct);
-        autoSelectStatus = success 
-          ? `<span style="color: ${inp.badgeSuccess}; font-size: 11px; margin-left: 8px; font-weight: 700; font-style: normal; font-family: 'Plus Jakarta Sans', sans-serif;">(⚡ Selected on Page)</span>`
-          : `<span style="color: ${inp.badgeWarning}; font-size: 11px; margin-left: 8px; font-weight: 700; font-style: normal; font-family: 'Plus Jakarta Sans', sans-serif;">(⚠️ Verify manually)</span>`;
+        const selRes = selectOptionOnPage(parts.correct);
+        if (selRes && selRes.success) {
+          const detail = (selRes.total > 1) ? ` (${selRes.count}/${selRes.total})` : "";
+          autoSelectStatus = `<span style="color: ${inp.badgeSuccess}; font-size: 11px; margin-left: 8px; font-weight: 700; font-style: normal; font-family: 'Plus Jakarta Sans', sans-serif;">(⚡ Selected${detail} on Page)</span>`;
+        } else {
+          autoSelectStatus = `<span style="color: ${inp.badgeWarning}; font-size: 11px; margin-left: 8px; font-weight: 700; font-style: normal; font-family: 'Plus Jakarta Sans', sans-serif;">(⚠️ Verify manually)</span>`;
+        }
       }
 
       formattedHtml += `
         <div class="hs-card" style="background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; border-radius: 0 8px 8px 0; padding: 7px 12px; margin-bottom: 9px;">
-          <span class="hs-card-label" style="font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; color: ${inp.cardLabel}; display: block; font-size: 12.5px; letter-spacing: 0.2px; margin-bottom: 3px;">Opzione Corretta • Correct Option</span>
+          <span class="hs-card-label" style="font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 700; color: ${inp.cardLabel}; display: block; font-size: 12.5px; letter-spacing: 0.2px; margin-bottom: 3px;">Opzione Corretta • Correct Option(s)</span>
           <div style="font-size: ${currentAnswerFontSize + 1}px; font-weight: 600; color: ${inp.cardValue}; margin-bottom: 2px;">
             ${escapeHtml(parts.correct)}
             ${autoSelectStatus}
@@ -1824,15 +1936,16 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
     }
   }
 
+  const activeCrop = lastCroppedBase64 || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hs_last_crop") : null);
   let expandStepBtnHtml = "";
-  if (strictMode && lastCroppedBase64) {
+  if (!isDerivation && activeCrop) {
     if (currentAnswerStealthMode) {
       expandStepBtnHtml = `
         <div style="margin-top: 6px; padding-top: 4px;">
           <button id="hs-expand-step" style="
-            background: transparent; color: ${inp.buttonText};
-            border: none; padding: 2px 4px; font-size: 11px;
-            cursor: pointer; opacity: 0.75; font-family: inherit;
+            background: transparent; color: ${inp.cardLabel || inp.overlayTextPrimary || '#111111'};
+            border: 1px dashed ${colorWithAlpha(inp.cardLabel || inp.overlayTextMuted, 0.45)}; border-radius: 4px; padding: 2px 6px; font-size: 11px;
+            cursor: pointer; opacity: 0.85; font-family: inherit;
           ">[+ explain step-by-step]</button>
         </div>
       `;
@@ -1898,7 +2011,9 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
     </div>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Playfair+Display:ital,wght@1,600;1,700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
-      #hs-answer-overlay::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+      #hs-answer-overlay::-webkit-scrollbar { width: 4px !important; background: transparent !important; }
+      #hs-answer-overlay::-webkit-scrollbar-thumb { background: ${colorWithAlpha(inp.overlayTextMuted, 0.4)} !important; border-radius: 4px !important; }
+      #hs-answer-overlay::-webkit-scrollbar-thumb:hover { background: ${colorWithAlpha(inp.overlayTextMuted, 0.7)} !important; }
       #hs-copy:hover, #hs-close:hover { opacity: 1 !important; }
       #hs-copy:active, #hs-close:active { transform: scale(0.88); }
       #hs-expand-step:hover { filter: brightness(1.08); }
@@ -1929,9 +2044,10 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta } = {}) 
       };
     }
     expandBtn.onclick = () => {
-      if (!lastCroppedBase64) return;
+      const cropToUse = lastCroppedBase64 || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hs_last_crop") : null);
+      if (!cropToUse) return;
       showLoadingOverlay("Generating step-by-step derivation...");
-      callAPI(lastCroppedBase64, { forceStyle: "detailed" });
+      callAPI(cropToUse, { forceStyle: "detailed" });
     };
   }
 

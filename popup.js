@@ -61,5 +61,43 @@ document.getElementById("openSettingsBtn").addEventListener("click", () => {
   window.close();
 });
 
+function applyActivePopupTheme(data) {
+  const mode = data.tabThemeMode || (data.themeScope === "inpage-only" ? "default" : data.themeMode) || "default";
+  const custom = data.tabCustomTheme || data.customTheme || "catppuccin-mocha";
+  const badge = document.getElementById("popupThemeBadge");
+
+  if (mode === "customized" && typeof HS_THEMES !== "undefined") {
+    const theme = HS_THEMES[custom] || HS_THEMES["catppuccin-mocha"];
+    if (typeof HS_applyThemeVariables === "function" && theme) {
+      HS_applyThemeVariables(document.documentElement, theme);
+    }
+    if (badge && theme) {
+      badge.innerText = `${theme.name.split(" ")[0]} ⚡`;
+    }
+  } else if (typeof HS_THEMES !== "undefined") {
+    if (typeof HS_applyThemeVariables === "function") {
+      HS_applyThemeVariables(document.documentElement, HS_THEMES["default"]);
+    }
+    if (badge) {
+      badge.innerText = "Groq ⚡";
+    }
+  }
+}
+
+function loadTheme() {
+  chrome.storage.local.get(["tabThemeMode", "tabCustomTheme", "themeMode", "customTheme", "themeScope"], (data) => {
+    applyActivePopupTheme(data || {});
+  });
+}
+
+chrome.storage.onChanged?.addListener((changes, area) => {
+  if (area === "local") {
+    chrome.storage.local.get(["tabThemeMode", "tabCustomTheme", "themeMode", "customTheme", "themeScope"], (data) => {
+      applyActivePopupTheme(data || {});
+    });
+  }
+});
+
 initDefaults();
 loadSettings();
+loadTheme();
