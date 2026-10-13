@@ -13,11 +13,13 @@ function initDefaults() {
 
 // Load and restore quick toggles
 function loadSettings() {
-  chrome.storage.local.get(["style", "subject", "autoSelect"], (data) => {
+  chrome.storage.local.get(["style", "subject", "autoSelect", "quickApproach"], (data) => {
     const savedSubject = data.subject === "logical-reasoning" ? "aptitude-reasoning" : (data.subject || "auto");
     document.getElementById("subjectSelect").value = savedSubject;
     document.getElementById("styleSelect").value = data.style || "detailed";
     document.getElementById("autoSelectCb").checked = !!data.autoSelect;
+    const approachEl = document.getElementById("approachSelect");
+    if (approachEl) approachEl.value = data.quickApproach || "global";
   });
 }
 
@@ -26,10 +28,13 @@ function saveQuickSettings() {
   const subject = document.getElementById("subjectSelect").value;
   const style = document.getElementById("styleSelect").value;
   const autoSelect = document.getElementById("autoSelectCb").checked;
-  chrome.storage.local.set({ subject, style, autoSelect, api: "Groq" });
+  const approachEl = document.getElementById("approachSelect");
+  const quickApproach = approachEl ? approachEl.value : "global";
+  chrome.storage.local.set({ subject, style, autoSelect, quickApproach, api: "Groq" });
 }
 
 document.getElementById("subjectSelect").addEventListener("change", saveQuickSettings);
+document.getElementById("approachSelect").addEventListener("change", saveQuickSettings);
 document.getElementById("styleSelect").addEventListener("change", saveQuickSettings);
 document.getElementById("autoSelectCb").addEventListener("change", saveQuickSettings);
 
@@ -101,3 +106,70 @@ chrome.storage.onChanged?.addListener((changes, area) => {
 initDefaults();
 loadSettings();
 loadTheme();
+
+async function initPopupUpdateBanner() {
+  const banner = document.getElementById("updateBanner");
+  const verText = document.getElementById("updateVerText");
+  const oneClickBtn = document.getElementById("oneClickUpdateBtn");
+  const dismissBtn = document.getElementById("dismissUpdateBtn");
+  const statusMsg = document.getElementById("popupUpdateStatus");
+
+  if (!banner || !verText || !oneClickBtn || !dismissBtn) return;
+
+  try {
+    const data = await chrome.storage.local.get(["hs_update_available", "hs_dismissed_update"]);
+    let update = data.hs_update_available;
+
+    // If no cached update flag, run a quick check
+    if (!update && typeof checkForExtensionUpdates === "function") {
+      const res = await checkForExtensionUpdates().catch(() => null);
+      if (res && res.hasUpdate) {
+        update = res.release;
+      }
+    }
+
+    if (update && update.version && update.version !== data.hs_dismissed_update) {
+      verText.textContent = `v${update.version}`;
+      banner.style.display = "flex";
+
+      oneClickBtn.onclick = async () => {
+        oneClickBtn.disabled = true;
+        oneClickBtn.innerHTML = "<span>⏳ Saving Backup...</span>";
+        try {
+          if (typeof exportExtensionSettings === "function") {
+            await exportExtensionSettings();
+          }
+          if (statusMsg) {
+            statusMsg.textContent = "✅ Config backed up! Opening download...";
+            statusMsg.style.display = "block";
+          }
+          const downloadUrl = update.zipUrl || update.htmlUrl;
+          if (chrome.tabs && chrome.tabs.create) {
+            chrome.tabs.create({ url: downloadUrl });
+          } else {
+            window.open(downloadUrl, "_blank");
+          }
+          setTimeout(() => {
+            oneClickBtn.innerHTML = "<span>✅ Backup Saved & Downloaded</span>";
+          }, 1000);
+        } catch (err) {
+          oneClickBtn.disabled = false;
+          oneClickBtn.innerHTML = "<span>📦 1-Click Update</span>";
+          alert("Backup failed: " + err.message);
+        }
+      };
+
+      dismissBtn.onclick = () => {
+        banner.style.display = "none";
+        chrome.storage.local.set({ hs_dismissed_update: update.version }).catch(() => {});
+        if (chrome.action && chrome.action.setBadgeText) {
+          chrome.action.setBadgeText({ text: "" }).catch(() => {});
+        }
+      };
+    }
+  } catch (e) {
+    console.warn("[popup] Update check error:", e);
+  }
+}
+
+initPopupUpdateBanner();

@@ -1,3 +1,5 @@
+importScripts("updater.js");
+
 const DEFAULT_GROQ_KEYS = "";
 
 function initDefaultKeys() {
@@ -10,8 +12,23 @@ function initDefaultKeys() {
   });
 }
 
-chrome.runtime.onInstalled.addListener(initDefaultKeys);
-chrome.runtime.onStartup.addListener(initDefaultKeys);
+chrome.runtime.onInstalled.addListener((details) => {
+  initDefaultKeys();
+  if (details && details.reason === "update") {
+    // Clear update badge on successful upgrade
+    if (chrome.action && chrome.action.setBadgeText) {
+      chrome.action.setBadgeText({ text: "" });
+    }
+  }
+  // Check for updates on extension installation or refresh
+  checkForExtensionUpdates().catch(() => {});
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  initDefaultKeys();
+  checkForExtensionUpdates().catch(() => {});
+});
+
 initDefaultKeys();
 
 chrome.commands.onCommand.addListener((command) => {
@@ -49,6 +66,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
       sendResponse({ dataUrl });
     });
+    return true;
+  }
+  if (msg.action === "checkForUpdates") {
+    checkForExtensionUpdates({ force: !!msg.force })
+      .then((res) => sendResponse(res))
+      .catch((err) => sendResponse({ error: err.message }));
+    return true;
+  }
+  if (msg.action === "clearUpdateBadge") {
+    if (chrome.action && chrome.action.setBadgeText) {
+      chrome.action.setBadgeText({ text: "" });
+    }
+    chrome.storage.local.set({ hs_dismissed_update: msg.version }).catch(() => {});
+    sendResponse({ ok: true });
     return true;
   }
 });

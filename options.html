@@ -981,6 +981,9 @@
         <div class="provider-pill">
           <span>⚡ Groq Dedicated</span>
         </div>
+        <div id="headerVersionBadge" class="provider-pill" style="cursor: pointer;" title="View Updates & Version">
+          <span id="headerVersionText">v1.3.0</span>
+        </div>
       </div>
     </div>
 
@@ -993,6 +996,10 @@
       <button class="nav-tab-btn" data-tab="tab-solver" role="tab" aria-selected="false">
         <span class="tab-icon">🎯</span>
         <span class="tab-label">Preferences</span>
+      </button>
+      <button class="nav-tab-btn" data-tab="tab-approaches" role="tab" aria-selected="false">
+        <span class="tab-icon">🧠</span>
+        <span class="tab-label">Reasoning Approaches</span>
       </button>
       <button class="nav-tab-btn" data-tab="tab-snipping" role="tab" aria-selected="false">
         <span class="tab-icon">✂️</span>
@@ -1007,8 +1014,8 @@
         <span class="tab-label">Themes</span>
       </button>
       <button class="nav-tab-btn" data-tab="tab-backup" role="tab" aria-selected="false">
-        <span class="tab-icon">⌨️</span>
-        <span class="tab-label">Shortcuts & Backup</span>
+        <span class="tab-icon">🚀</span>
+        <span class="tab-label">Updates & Backup</span>
       </button>
     </div>
 
@@ -1119,14 +1126,14 @@
               <label for="subjectSelect">Default Subject Domain</label>
               <select id="subjectSelect">
                 <option value="auto">🌐 Auto / General</option>
-                <option value="aptitude-reasoning">🧩 Aptitude, Logical Reasoning & Math</option>
+                <option value="aptitude-reasoning">🧩 Aptitude & Logic (Precision Engine)</option>
                 <option value="prob-stats">📊 Probability & Statistics</option>
                 <option value="dsa">⚡ Algorithms & Data Structures</option>
                 <option value="backend-dev">⚙️ Backend Development</option>
                 <option value="ai-finance">🤖 AI For Finance</option>
                 <option value="communication">💬 Verbal & Advanced Communication</option>
               </select>
-              <p class="field-hint">Tailors system instructions and domain reasoning heuristics specifically for your current course or exam type.</p>
+              <p class="field-hint">Tailors system instructions and domain reasoning heuristics. Aptitude & Logic activates a high-precision 2-stage decoupled engine (OCR parsing on Key 1 ➔ deep math & trap deduction on Key 2) in ~1.8s for maximum accuracy without errors.</p>
             </div>
           </div>
 
@@ -1170,6 +1177,155 @@
               <span class="slider"></span>
             </span>
           </label>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Tab: Reasoning Approaches & Domain Strategies Matrix          -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="tab-approaches" class="tab-pane" role="tabpanel">
+      <div class="grid-2col">
+        
+        <!-- Left Column: Global Approach & Strategy Explanation -->
+        <div class="grid-col-stack">
+          <!-- Global Approach Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🌐 Global Default Reasoning Approach</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="globalApproachSelect">Default Approach for All Subjects</label>
+              <select id="globalApproachSelect">
+                <option value="normal">⚡ Normal Single-Pass (~1.2s) — High-speed direct solve on rotated key</option>
+                <option value="parallel-dual">⚡ Dual Keys (Parallel Consensus ~1.5s) — Concurrent Solver & Auditor on 2 keys</option>
+                <option value="decoupled-2stage">🎯 2-Stage Pipeline — Solver (Key 1) ➔ Crosschecker (Key 2)</option>
+                <option value="sequential-3stage">🔬 3-Stage Exhaustive Pipeline — Unrestricted Deep Engine (Unlimited Thought Tokens ➔ Direct Answer)</option>
+              </select>
+              <p class="field-hint">Sets the baseline engine used across all subjects. Individual domains below can override this default.</p>
+            </div>
+          </div>
+
+          <!-- Approaches Reference Guide -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>📚 Approach Guide & Technical Profiles</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 12px; line-height: 1.5; color: var(--text-secondary);">
+              <div style="padding: 10px 12px; border-radius: 8px; background: rgba(0,0,0,0.03); border: 1px solid var(--border-color);">
+                <strong style="color: var(--text-primary); font-size: 12.5px;">⚡ Normal (Single-Pass ~1.2s)</strong><br>
+                Instant, ultra-low latency solve executing on a single rotated Groq API key. Ideal for verbal ability, coding, backend, and quick general queries.
+              </div>
+              <div style="padding: 10px 12px; border-radius: 8px; background: rgba(0,0,0,0.03); border: 1px solid var(--border-color);">
+                <strong style="color: var(--text-primary); font-size: 12.5px;">⚡ Dual Keys (Parallel Consensus ~1.5s)</strong><br>
+                Dispatches a First-Principles Math Solver on <strong>Key 1</strong> and an Adversarial Trap Auditor on <strong>Key 2</strong> simultaneously at $t=0$. Answers reconcile via consensus with zero delay.
+              </div>
+              <div style="padding: 10px 12px; border-radius: 8px; background: rgba(0,0,0,0.03); border: 1px solid var(--border-color);">
+                <strong style="color: var(--text-primary); font-size: 12.5px;">🎯 2-Stage Pipeline (Solver ➔ Crosschecker)</strong><br>
+                Stage 1 solves the problem from first principles on <strong>Key 1</strong>; Stage 2 crosschecks all calculations, units, constraints, and trap distractors on <strong>Key 2</strong> before delivering the verified answer.
+              </div>
+              <div style="padding: 10px 12px; border-radius: 8px; background: rgba(0,0,0,0.03); border: 1px solid var(--border-color);">
+                <strong style="color: var(--text-primary); font-size: 12.5px;">🔬 3-Stage Exhaustive Pipeline (Unrestricted Deep Engine)</strong><br>
+                Sequential 3-stage chain with <strong>unrestricted thinking tokens</strong> (Stage 1 OCR on Key 1 ➔ Stage 2 Unrestricted Derivation on Key 2 ➔ Stage 3 Trap Audit & Direct Answer on Key 3). Maximum reasoning power for high-stakes, tricky examinations.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Per-Domain Strategy Customization Matrix -->
+        <div class="grid-col-stack">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🎯 Per-Domain Strategy Customization</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;">
+              Override the reasoning approach for specific subjects. Domains set to <em>"Follow Global Approach"</em> inherit your default setting above.
+            </p>
+
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="approach_auto">🌐 Auto / General</label>
+              <select id="approach_auto" class="subject-approach-select" data-subject="auto">
+                <option value="global">🌐 Follow Global Approach (Default)</option>
+                <option value="normal">⚡ Normal Single-Pass (~1.2s)</option>
+                <option value="parallel-dual">⚡ Dual Keys (Parallel Consensus ~1.5s)</option>
+                <option value="decoupled-2stage">🎯 2-Stage Pipeline (Solve ➔ Crosscheck)</option>
+                <option value="sequential-3stage">🔬 3-Stage Unrestricted Engine</option>
+              </select>
+            </div>
+
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="approach_aptitude-reasoning">🧩 Aptitude & Logical Reasoning</label>
+              <select id="approach_aptitude-reasoning" class="subject-approach-select" data-subject="aptitude-reasoning">
+                <option value="global">🌐 Follow Global Approach (Default)</option>
+                <option value="normal">⚡ Normal Single-Pass (~1.2s)</option>
+                <option value="parallel-dual">⚡ Dual Keys (Parallel Consensus ~1.5s)</option>
+                <option value="decoupled-2stage">🎯 2-Stage Pipeline (Solve ➔ Crosscheck)</option>
+                <option value="sequential-3stage">🔬 3-Stage Unrestricted Engine</option>
+              </select>
+            </div>
+
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="approach_prob-stats">📊 Probability & Statistics</label>
+              <select id="approach_prob-stats" class="subject-approach-select" data-subject="prob-stats">
+                <option value="global">🌐 Follow Global Approach (Default)</option>
+                <option value="normal">⚡ Normal Single-Pass (~1.2s)</option>
+                <option value="parallel-dual">⚡ Dual Keys (Parallel Consensus ~1.5s)</option>
+                <option value="decoupled-2stage">🎯 2-Stage Pipeline (Solve ➔ Crosscheck)</option>
+                <option value="sequential-3stage">🔬 3-Stage Unrestricted Engine</option>
+              </select>
+            </div>
+
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="approach_dsa">⚡ Algorithms & Data Structures</label>
+              <select id="approach_dsa" class="subject-approach-select" data-subject="dsa">
+                <option value="global">🌐 Follow Global Approach (Default)</option>
+                <option value="normal">⚡ Normal Single-Pass (~1.2s)</option>
+                <option value="parallel-dual">⚡ Dual Keys (Parallel Consensus ~1.5s)</option>
+                <option value="decoupled-2stage">🎯 2-Stage Pipeline (Solve ➔ Crosscheck)</option>
+                <option value="sequential-3stage">🔬 3-Stage Unrestricted Engine</option>
+              </select>
+            </div>
+
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="approach_backend-dev">⚙️ Backend Development</label>
+              <select id="approach_backend-dev" class="subject-approach-select" data-subject="backend-dev">
+                <option value="global">🌐 Follow Global Approach (Default)</option>
+                <option value="normal">⚡ Normal Single-Pass (~1.2s)</option>
+                <option value="parallel-dual">⚡ Dual Keys (Parallel Consensus ~1.5s)</option>
+                <option value="decoupled-2stage">🎯 2-Stage Pipeline (Solve ➔ Crosscheck)</option>
+                <option value="sequential-3stage">🔬 3-Stage Unrestricted Engine</option>
+              </select>
+            </div>
+
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="approach_ai-finance">🤖 AI For Finance</label>
+              <select id="approach_ai-finance" class="subject-approach-select" data-subject="ai-finance">
+                <option value="global">🌐 Follow Global Approach (Default)</option>
+                <option value="normal">⚡ Normal Single-Pass (~1.2s)</option>
+                <option value="parallel-dual">⚡ Dual Keys (Parallel Consensus ~1.5s)</option>
+                <option value="decoupled-2stage">🎯 2-Stage Pipeline (Solve ➔ Crosscheck)</option>
+                <option value="sequential-3stage">🔬 3-Stage Unrestricted Engine</option>
+              </select>
+            </div>
+
+            <div class="field" style="margin-bottom: 12px;">
+              <label for="approach_communication">💬 Verbal & Advanced Communication</label>
+              <select id="approach_communication" class="subject-approach-select" data-subject="communication">
+                <option value="global">🌐 Follow Global Approach (Default)</option>
+                <option value="normal">⚡ Normal Single-Pass (~1.2s)</option>
+                <option value="parallel-dual">⚡ Dual Keys (Parallel Consensus ~1.5s)</option>
+                <option value="decoupled-2stage">🎯 2-Stage Pipeline (Solve ➔ Crosscheck)</option>
+                <option value="sequential-3stage">🔬 3-Stage Unrestricted Engine</option>
+              </select>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -1724,9 +1880,56 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- Tab 5: Keyboard Shortcuts & Backup (2D Grid) -->
+    <!-- Tab 5: Release Updates & Backup (2D Grid) -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <div id="tab-backup" class="tab-pane" role="tabpanel">
+      
+      <!-- Top Card: GitHub Release & 1-Click Update Hub -->
+      <div class="card" style="margin-bottom: 22px;">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🚀 Release Updates & 1-Click Upgrade</span>
+            <span class="card-subtitle-flourish">Gestione Versioni & Aggiornamento Diretto</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span id="updateReleaseBadge" class="badge-tag">Checking for updates...</span>
+            <button id="checkUpdatesBtn" class="btn btn-secondary" type="button" style="padding: 6px 12px; font-size: 12px;">
+              <span>🔄 Check Now</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 10px;">
+          <div>
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px;">
+              Updating unpacked Chrome extensions has never been smoother. Clicking <strong>1-Click Update</strong> automatically packages all your Groq API keys, reasoning approaches, models, and custom themes into a backup (<code>homework-solver-backup-YYYY-MM-DD.json</code>), copies it to your clipboard, and downloads the latest release archive.
+            </p>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+              <button id="oneClickUpdateFullBtn" class="btn btn-primary" type="button" style="padding: 10px 18px; font-size: 13.5px;">
+                <span>🚀 1-Click Update (Backup & Download)</span>
+              </button>
+              <a id="viewGithubReleaseLink" class="btn btn-secondary" href="https://github.com/ypatil2006-coder/homework-extension/releases" target="_blank" style="padding: 10px 14px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center;">
+                <span>🐙 GitHub Releases ↗</span>
+              </a>
+            </div>
+            <div id="updateActionStatus" class="save-status"></div>
+          </div>
+
+          <div style="background: rgba(0, 0, 0, 0.03); border: 1px dashed var(--glass-border); border-radius: 10px; padding: 14px 16px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+              📋 Seamless Unpacked Update Process:
+            </div>
+            <ol style="font-size: 12px; color: var(--text-secondary); line-height: 1.6; padding-left: 18px; display: flex; flex-direction: column; gap: 4px;">
+              <li>Click <strong>1-Click Update</strong> (keys & settings automatically saved to file).</li>
+              <li>Extract the downloaded <code>.zip</code> and replace the extension folder files.</li>
+              <li>Go to <code>chrome://extensions</code> and click the <strong>🔁 Reload</strong> button on Homework Solver.</li>
+              <li>Chrome preserves storage, but if needed, restore below in 1 click!</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
       <div class="grid-2col-equal">
         
         <!-- Left: Shortcuts & Controls -->
@@ -1761,19 +1964,26 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <span>📦 Backup & Transfer</span>
-              <span class="card-subtitle-flourish">Archivio e Portabilità</span>
+              <span>📦 Backup & Restore Configuration</span>
+              <span class="card-subtitle-flourish">Archivio e Ripristino Chiavi</span>
             </div>
           </div>
-          <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
-            Easily export your configured keys, themes, optics, and solver preferences to JSON, or restore them onto another device or browser profile.
+          <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px;">
+            Export or restore all your Groq API keys (Key 1, Key 2, Key 3), custom models, reasoning pipelines, domain preferences, and optical themes.
           </p>
-          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button id="exportKeysBtn" class="btn btn-secondary" type="button">
-              <span>📤 Copy Backup JSON</span>
+          <input type="file" id="importConfigFile" accept=".json" style="display: none;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="importKeysFileBtn" class="btn btn-primary" type="button">
+              <span>📥 1-Click Restore (.json)</span>
             </button>
-            <button id="importKeysBtn" class="btn btn-secondary" type="button">
-              <span>📥 Restore from Backup</span>
+            <button id="exportKeysDownloadBtn" class="btn btn-secondary" type="button">
+              <span>💾 Download Backup</span>
+            </button>
+            <button id="exportKeysClipboardBtn" class="btn btn-secondary" type="button">
+              <span>📋 Copy JSON</span>
+            </button>
+            <button id="importKeysClipboardBtn" class="btn btn-secondary" type="button">
+              <span>📋 Paste JSON</span>
             </button>
           </div>
           <div id="backupStatus" class="save-status"></div>
@@ -1796,6 +2006,7 @@
   </div>
 
   <script src="themes.js"></script>
+  <script src="updater.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

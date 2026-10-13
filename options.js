@@ -790,6 +790,7 @@ if (ansBlurSlider) {
 function loadSettings() {
   chrome.storage.local.get([
     "keys", "models", "style", "subject", "autoSelect", "snipCursor", "customCursorUrl",
+    "globalApproach", "subjectApproaches",
     "snipThemeMode", "snipCustomTheme", "answerThemeMode", "answerCustomTheme", "splitAnswerTheme",
     "tabThemeMode", "tabCustomTheme", "themeMode", "customTheme", "themeScope",
     "snipDimming", "snipBorderThickness", "snipFillOpacity", "snipBorderStyle", "snipBorderGlow", "snipShowHint",
@@ -813,6 +814,19 @@ function loadSettings() {
     document.getElementById("subjectSelect").value = savedSubject;
     document.getElementById("styleSelect").value = data.style || "detailed";
     document.getElementById("autoSelectCb").checked = !!data.autoSelect;
+
+    // Load Global Reasoning Approach & Domain Customizations
+    const globalApproach = data.globalApproach || "normal";
+    const globalAppEl = document.getElementById("globalApproachSelect");
+    if (globalAppEl) globalAppEl.value = globalApproach;
+
+    const subjectApproaches = data.subjectApproaches || {};
+    document.querySelectorAll(".subject-approach-select").forEach(sel => {
+      const subj = sel.dataset.subject;
+      if (subj) {
+        sel.value = subjectApproaches[subj] || "global";
+      }
+    });
 
     const snipCursor = data.snipCursor || "crosshair";
     document.getElementById("cursorPresetSelect").value = snipCursor;
@@ -942,6 +956,17 @@ function saveSettings(callback) {
   const snipCursor = document.getElementById("cursorPresetSelect").value;
   const customCursorUrl = document.getElementById("customCursorUrlInput").value.trim();
 
+  const globalApproachEl = document.getElementById("globalApproachSelect");
+  const globalApproach = globalApproachEl ? globalApproachEl.value : "normal";
+
+  const subjectApproaches = {};
+  document.querySelectorAll(".subject-approach-select").forEach(sel => {
+    const subj = sel.dataset.subject;
+    if (subj) {
+      subjectApproaches[subj] = sel.value;
+    }
+  });
+
   chrome.storage.local.get(["keys", "models"], (data) => {
     const keys = data.keys || {};
     const models = data.models || {};
@@ -955,6 +980,8 @@ function saveSettings(callback) {
       subject,
       style,
       autoSelect,
+      globalApproach,
+      subjectApproaches,
       snipCursor,
       customCursorUrl,
       snipThemeMode,
@@ -1001,6 +1028,14 @@ function saveSettings(callback) {
 
 document.getElementById("saveBtn").addEventListener("click", () => {
   saveSettings();
+});
+
+const globalAppSelect = document.getElementById("globalApproachSelect");
+if (globalAppSelect) {
+  globalAppSelect.addEventListener("change", () => saveSettings());
+}
+document.querySelectorAll(".subject-approach-select").forEach(sel => {
+  sel.addEventListener("change", () => saveSettings());
 });
 
 // Reset to Defaults
@@ -1050,6 +1085,9 @@ document.getElementById("resetDefaultsBtn").addEventListener("click", () => {
         subject: "auto",
         style: "detailed",
         autoSelect: false,
+        globalApproach: "normal",
+        subjectApproaches: {},
+        quickApproach: "global",
         snipCursor: "crosshair",
         customCursorUrl: "",
         snipThemeMode: "default",
@@ -1168,51 +1206,198 @@ document.getElementById("openShortcutsBtn").addEventListener("click", (e) => {
   chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
 });
 
-// Export Backup
-document.getElementById("exportKeysBtn").addEventListener("click", () => {
-  chrome.storage.local.get([
-    "keys", "models", "api", "subject", "style", "autoSelect", "snipCursor", "customCursorUrl",
-    "snipThemeMode", "snipCustomTheme", "answerThemeMode", "answerCustomTheme", "splitAnswerTheme",
-    "tabThemeMode", "tabCustomTheme", "themeMode", "customTheme",
-    "snipDimming", "snipBorderThickness", "snipFillOpacity", "snipBorderStyle", "snipBorderGlow", "snipShowHint",
-    "answerStealthMode", "answerBorderThickness", "answerBorderRadius", "answerWidth", "answerOpacity", "answerBlur", "answerFontSize", "answerBorderStyle", "answerDragBar", "answerAutoCopy",
-    "answerCustomColorEnabled", "answerCustomBgColor", "answerCustomTextColor", "answerCustomBorderColor"
-  ], (data) => {
-    const backupJson = JSON.stringify(data, null, 2);
-    const status = document.getElementById("backupStatus");
-    navigator.clipboard.writeText(backupJson).then(() => {
-      status.style.color = "#267344";
-      status.innerText = "✅ Backup JSON copied to clipboard!";
-      setTimeout(() => { status.innerText = ""; }, 3000);
-    }).catch(() => {
-      prompt("Copy your backup data:", backupJson);
-    });
-  });
-});
-
-// Import Backup
-document.getElementById("importKeysBtn").addEventListener("click", () => {
-  const pasteData = prompt("Paste your Backup JSON here:");
-  if (!pasteData || !pasteData.trim()) return;
-  try {
-    const parsed = JSON.parse(pasteData.trim());
-    if (parsed && typeof parsed === "object") {
-      parsed.api = "Groq";
-      chrome.storage.local.set(parsed, () => {
-        const status = document.getElementById("backupStatus");
-        status.style.color = "#267344";
-        status.innerText = "✅ Keys & Settings Restored!";
-        loadSettings();
-        setTimeout(() => { status.innerText = ""; }, 3000);
-      });
-    } else {
-      alert("Invalid backup data format.");
-    }
-  } catch (err) {
-    alert("Could not parse JSON. Please ensure valid JSON was pasted.");
+// ── Release Updates & Config Portability Controller ────────
+async function initUpdateAndBackupUI() {
+  const currentVersion = chrome.runtime.getManifest().version;
+  const headerVersionText = document.getElementById("headerVersionText");
+  if (headerVersionText) {
+    headerVersionText.textContent = `v${currentVersion}`;
   }
-});
 
+  const releaseBadge = document.getElementById("updateReleaseBadge");
+  const checkBtn = document.getElementById("checkUpdatesBtn");
+  const oneClickFullBtn = document.getElementById("oneClickUpdateFullBtn");
+  const releaseLink = document.getElementById("viewGithubReleaseLink");
+  const updateStatus = document.getElementById("updateActionStatus");
+  const backupStatus = document.getElementById("backupStatus");
+
+  // 1. Function to run update check and refresh UI
+  async function performCheck(force = false) {
+    if (releaseBadge) releaseBadge.textContent = "Checking GitHub...";
+    try {
+      const res = await checkForExtensionUpdates({ force });
+      if (res && res.hasUpdate) {
+        if (releaseBadge) {
+          releaseBadge.textContent = `🌟 v${res.remoteVersion} Available!`;
+          releaseBadge.style.background = "rgba(205, 82, 30, 0.15)";
+          releaseBadge.style.color = "#9e3d17";
+          releaseBadge.style.borderColor = "rgba(205, 82, 30, 0.4)";
+        }
+        if (releaseLink && res.release && res.release.htmlUrl) {
+          releaseLink.href = res.release.htmlUrl;
+        }
+      } else {
+        if (releaseBadge) {
+          releaseBadge.textContent = `✅ v${(res && res.remoteVersion) || currentVersion} (Up to date)`;
+          releaseBadge.style.background = "rgba(29, 102, 56, 0.12)";
+          releaseBadge.style.color = "#1d6638";
+          releaseBadge.style.borderColor = "rgba(29, 102, 56, 0.3)";
+        }
+      }
+    } catch (err) {
+      if (releaseBadge) {
+        releaseBadge.textContent = `v${currentVersion}`;
+      }
+      console.warn("[options] Update check error:", err);
+    }
+  }
+
+  // Initial check on load
+  performCheck(false);
+
+  // Manual Check Button
+  if (checkBtn) {
+    checkBtn.addEventListener("click", async () => {
+      checkBtn.disabled = true;
+      checkBtn.innerHTML = "<span>🔄 Checking...</span>";
+      await performCheck(true);
+      setTimeout(() => {
+        checkBtn.disabled = false;
+        checkBtn.innerHTML = "<span>🔄 Check Now</span>";
+      }, 600);
+    });
+  }
+
+  // 1-Click Full Update (Export Backup + Download Latest Release)
+  if (oneClickFullBtn) {
+    oneClickFullBtn.addEventListener("click", async () => {
+      oneClickFullBtn.disabled = true;
+      oneClickFullBtn.innerHTML = "<span>⏳ Backing up & Fetching...</span>";
+      if (updateStatus) {
+        updateStatus.style.color = "#1d6638";
+        updateStatus.textContent = "📦 Packaging settings & downloading backup...";
+      }
+
+      try {
+        await performOneClickUpdateFlow();
+        if (updateStatus) {
+          updateStatus.textContent = "✅ Backup saved (.json) + release zip opened! Replace files in extension directory and reload in chrome://extensions.";
+        }
+        setTimeout(() => {
+          oneClickFullBtn.disabled = false;
+          oneClickFullBtn.innerHTML = "<span>🚀 1-Click Update (Backup & Download)</span>";
+        }, 1500);
+      } catch (err) {
+        oneClickFullBtn.disabled = false;
+        oneClickFullBtn.innerHTML = "<span>🚀 1-Click Update (Backup & Download)</span>";
+        if (updateStatus) {
+          updateStatus.style.color = "#b91c1c";
+          updateStatus.textContent = `Update failed: ${err.message}`;
+        }
+      }
+    });
+  }
+
+  // 1-Click Restore from File (.json)
+  const importFileBtn = document.getElementById("importKeysFileBtn");
+  const importFileInput = document.getElementById("importConfigFile");
+
+  if (importFileBtn && importFileInput) {
+    importFileBtn.addEventListener("click", () => {
+      importFileInput.value = "";
+      importFileInput.click();
+    });
+
+    importFileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const content = event.target.result;
+          await restoreExtensionSettings(content);
+          loadSettings();
+          if (backupStatus) {
+            backupStatus.style.color = "#1d6638";
+            backupStatus.textContent = `✅ Restored successfully from "${file.name}"!`;
+            setTimeout(() => { backupStatus.textContent = ""; }, 4000);
+          }
+        } catch (err) {
+          alert("Could not restore backup file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  // Manual Download Backup Button
+  const exportDownloadBtn = document.getElementById("exportKeysDownloadBtn");
+  if (exportDownloadBtn) {
+    exportDownloadBtn.addEventListener("click", async () => {
+      try {
+        await exportExtensionSettings();
+        if (backupStatus) {
+          backupStatus.style.color = "#1d6638";
+          backupStatus.textContent = "✅ Configuration backup downloaded & copied to clipboard!";
+          setTimeout(() => { backupStatus.textContent = ""; }, 3500);
+        }
+      } catch (err) {
+        alert("Export failed: " + err.message);
+      }
+    });
+  }
+
+  // Copy JSON to Clipboard Button
+  const exportClipboardBtn = document.getElementById("exportKeysClipboardBtn");
+  if (exportClipboardBtn) {
+    exportClipboardBtn.addEventListener("click", async () => {
+      try {
+        await exportExtensionSettings();
+        if (backupStatus) {
+          backupStatus.style.color = "#1d6638";
+          backupStatus.textContent = "✅ Backup JSON copied to clipboard!";
+          setTimeout(() => { backupStatus.textContent = ""; }, 3500);
+        }
+      } catch (err) {
+        alert("Clipboard export failed: " + err.message);
+      }
+    });
+  }
+
+  // Paste & Restore from Clipboard
+  const importClipboardBtn = document.getElementById("importKeysClipboardBtn");
+  if (importClipboardBtn) {
+    importClipboardBtn.addEventListener("click", async () => {
+      let pasteText = "";
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          pasteText = await navigator.clipboard.readText();
+        }
+      } catch (e) {}
+
+      if (!pasteText || !pasteText.trim().startsWith("{")) {
+        pasteText = prompt("Paste your Backup JSON content here:");
+      }
+
+      if (!pasteText || !pasteText.trim()) return;
+
+      try {
+        await restoreExtensionSettings(pasteText.trim());
+        loadSettings();
+        if (backupStatus) {
+          backupStatus.style.color = "#1d6638";
+          backupStatus.textContent = "✅ Configuration restored from clipboard!";
+          setTimeout(() => { backupStatus.textContent = ""; }, 3500);
+        }
+      } catch (err) {
+        alert("Could not restore settings: " + err.message);
+      }
+    });
+  }
+}
+
+initUpdateAndBackupUI();
 loadSettings();
 
 // ── Tab Navigation Controller ────────────────
@@ -1269,6 +1454,11 @@ function initTabNavigation() {
   }
 
   switchTab(initialTab, false);
+
+  const headerVersionBadge = document.getElementById("headerVersionBadge");
+  if (headerVersionBadge) {
+    headerVersionBadge.addEventListener("click", () => switchTab("tab-backup"));
+  }
 }
 
 initTabNavigation();

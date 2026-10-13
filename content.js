@@ -829,7 +829,772 @@ function callStream({ provider, url, headers, body, deadlineMs, onChunk }) {
   });
 }
 
-// ── Call AI API (Two-Phase Streaming Orchestrator) ─
+function getSubjectPersona(sub) {
+  const aptitudePersona = "You are an Elite Quantitative Aptitude, Logical Reasoning & Mathematics Specialist. You master both numerical aptitude and logical deduction:\n" +
+    "- Quantitative Aptitude: Exact calculations for percentages, ratios, profit & loss, work & time, speed-time-distance, averages, mixtures, number series, simple/compound interest, geometry, mensuration, and algebraic equations. Pay strict attention to units and dimensional consistency.\n" +
+    "- Logical Reasoning & Puzzles: Formal deductions for linear/circular seating arrangements, family trees & blood relations, syllogisms (strict Venn logic), direction sense, input-output machines, coding-decoding, and matrix elimination grids. Never make unstated assumptions.";
+
+  const personas = {
+    auto: "You are an Expert Academic Tutor & Multi-Disciplinary Problem Solver. Rigorously analyze problems across sciences, engineering, mathematics, and humanities from first principles. Extract given parameters, verify step-by-step logic, and check for negative constraints (NOT, EXCEPT, LEAST).",
+    "aptitude-reasoning": aptitudePersona,
+    "logical-reasoning": aptitudePersona,
+    "prob-stats": "You are a Senior Probability & Mathematical Statistics Specialist. Rigorously analyze discrete and continuous probability distributions (Binomial, Poisson, Normal, Exponential), conditional probability, Bayes' Theorem, expected value, variance, hypothesis testing, p-values, regression, and combinatorics (permutations & combinations). Verify sample spaces and independence assumptions before calculating.",
+    "ai-finance": "You are a Senior Quantitative Finance & AI for Finance Specialist. Rigorously analyze financial mathematics, options pricing, Sharpe/Sortino ratios, risk models (VaR), portfolio optimization, time value of money, trading logic, and ML/RAG evaluation metrics with financial and algorithmic precision.",
+    "dsa": "You are a Principal Algorithms Engineer & Competitive Programming Specialist. Rigorously analyze data structures (trees, graphs, heaps, hash maps, tries) and algorithmic techniques (DP, two pointers, sliding window, binary search, DFS/BFS). Trace invariants, time/space complexity, and boundary edge cases (null, empty, single element, cycles, integer overflow).",
+    "backend-dev": "You are a Staff Backend Systems Engineer. Rigorously analyze code logic, HTTP specifications, REST/GraphQL APIs, database queries (SQL/NoSQL transactions, indexing), authentication/JWT, concurrency, race conditions, and error-handling semantics.",
+    "communication": "You are an Expert in Linguistic Analysis, English Grammar, and Verbal Ability. Rigorously analyze grammatical correctness (subject-verb agreement, modifiers, tense, parallelism), vocabulary in context, reading comprehension logic, sentence completion, and argument structures."
+  };
+
+  return personas[sub || "auto"] || personas["auto"];
+}
+
+// ── Approach 1: Sequential 3-Stage Unrestricted Deep Engine ──
+async function callAptitudeSequential3Stage(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject }) {
+  const groqKeysRaw = (keys || {}).Groq || "";
+  const groqParsed = groqKeysRaw.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
+  if (groqParsed.length === 0) {
+    showAnswerOverlay(
+      `⚠️ No Groq API key found!\n\n` +
+      `👉 How to configure:\n` +
+      `1. Click the extension icon in the Chrome toolbar.\n` +
+      `2. Paste your Groq API key(s) in the Groq API Key box.\n` +
+      `3. Click '💾 Save'.\n\n` +
+      `💡 Get a free API key at https://console.groq.com/keys`
+    );
+    return;
+  }
+
+  const keyInfo = await getRotatedGroqKeys(keys);
+  const allKeys = keyInfo.keys.length > 0 ? keyInfo.keys : groqParsed;
+  const totalKeys = keyInfo.total || allKeys.length;
+  const groqModels = getGroqVisionModels(customModel, lastGood.GroqModel);
+  const model = groqModels[0] || "qwen/qwen3.8-27b";
+
+  // Dedicated distinct key indices for the 3 sequential stages
+  const stage1KeyIdx = 0;
+  const stage2KeyIdx = allKeys.length > 1 ? 1 : 0;
+  const stage3KeyIdx = allKeys.length > 2 ? 2 : (allKeys.length > 1 ? 0 : 0);
+
+  async function executeStage({ stageNum, stageName, assignedKeyIdx, messages, maxTokens, statusMessage, onChunk }) {
+    const numKeys = allKeys.length;
+    let attempts = 0;
+    let currentKeyIdx = assignedKeyIdx % numKeys;
+
+    while (attempts < numKeys) {
+      const activeKey = allKeys[currentKeyIdx];
+      const actualDisplayIndex = ((keyInfo.activeIndex + currentKeyIdx) % totalKeys) + 1;
+
+      if (isKeyCoolingDown(activeKey) && attempts < numKeys - 1) {
+        currentKeyIdx = (currentKeyIdx + 1) % numKeys;
+        attempts++;
+        continue;
+      }
+
+      console.log(`[hs-3stage] Stage ${stageNum}/3 (${stageName}) running on Key #${actualDisplayIndex}/${totalKeys} (${model})`);
+      showLoadingOverlay(`⚡ [Key #${actualDisplayIndex}/${totalKeys}] Stage ${stageNum}/3: ${statusMessage}`);
+
+      const cfg = {
+        provider: "Groq",
+        key: activeKey,
+        keyIndex: currentKeyIdx,
+        totalKeys,
+        model,
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
+        body: {
+          model,
+          messages,
+          max_completion_tokens: maxTokens,
+          max_tokens: maxTokens,
+          reasoning_format: "raw"
+        },
+        deadlineMs: 90000, // 90s deadline: unrestricted thinking is never interrupted
+        onChunk
+      };
+
+      const res = await callStream(cfg);
+      if (res.ok && res.text) {
+        chrome.storage.local.set({ lastGood: { GroqModel: model } }).catch(() => {});
+        return {
+          ok: true,
+          text: res.text,
+          keyIndex: currentKeyIdx,
+          actualDisplayIndex,
+          totalKeys
+        };
+      }
+
+      console.warn(`[hs-3stage] Stage ${stageNum} failed on Key #${actualDisplayIndex}: ${res.error}`);
+      if (isRateLimitError(res.error)) {
+        markKeyRateLimited(activeKey);
+      }
+
+      currentKeyIdx = (currentKeyIdx + 1) % numKeys;
+      attempts++;
+    }
+
+    return {
+      ok: false,
+      error: `All ${numKeys} Groq key(s) failed or rate-limited during Stage ${stageNum} (${stageName}).`
+    };
+  }
+
+  // ── Stage 1: Visual Extraction & Problem Deconstruction ──
+  const STAGE1_SYSTEM = `You are an Elite Problem Extraction & Visual Deconstruction Specialist.
+Your SOLE task is to transcribe, formalize, and deconstruct the problem from the screenshot with 100% precision:
+1. QUESTION TEXT: Transcribe the exact question text word-for-word.
+2. SELECTOR TYPE: Explicitly note whether candidate options have SQUARE CHECKBOXES (☐ / [ ], multi-select) or CIRCULAR RADIO BUTTONS (○ / ( ), single choice).
+3. GIVEN PARAMETERS & CONSTRAINTS:
+   - Explicitly list every numerical value with its exact unit (e.g. km/h, m/s, hours, minutes, liters, $, %, ratio).
+   - Flag any negative constraints or qualifying terms: NOT, EXCEPT, LEAST, MUST, CANNOT, NEITHER, BOTH, IF AND ONLY IF.
+4. DIAGRAM / TABLE / DATA VISUALIZATION:
+   - If there is a table, transcribe all rows, column headers, and cells.
+   - If there is a diagram, code snippet, or figure, describe all labeled components and measurements.
+5. TARGET VARIABLE: Identify precisely what the question asks for.
+6. CANDIDATE OPTIONS: Transcribe each option letter (A, B, C, D, etc.) and complete text exactly as shown.
+CRITICAL: Do NOT attempt to solve. Output ONLY the clean structured deconstruction.`;
+
+  let stage1Stream = "";
+  const s1DisplayIdx = ((keyInfo.activeIndex + stage1KeyIdx) % totalKeys) + 1;
+  const stage1Res = await executeStage({
+    stageNum: 1,
+    stageName: "Visual Extraction",
+    assignedKeyIdx: stage1KeyIdx,
+    messages: [
+      { role: "system", content: STAGE1_SYSTEM },
+      { role: "user", content: [
+        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+        { type: "text", text: "Extract and formalize the question, given values, units, options, and constraints from this image." }
+      ]}
+    ],
+    maxTokens: 4096,
+    statusMessage: "Extracting problem, constraints & diagram data…",
+    onChunk: (chunk) => {
+      stage1Stream = chunk;
+      updateStreamingOverlay(`⚡ Stage 1/3 (Key #${s1DisplayIdx}/${totalKeys}): Extracting problem & constraints…\n\n${escapeHtml(stripThinkTags(stage1Stream))}`, "detailed");
+    }
+  });
+
+  if (!stage1Res.ok) {
+    showAnswerOverlay(`⚠️ Stage 1 Error:\n${stage1Res.error}`);
+    return;
+  }
+
+  const stage1Text = stripThinkTags(stage1Res.text).trim();
+
+  // ── Stage 2: Independent First-Principles Derivation (UNRESTRICTED THINKING) ──
+  const domainPersona = getSubjectPersona(subject);
+  const STAGE2_SYSTEM = `${domainPersona}
+You are an Elite Problem Solving & Pure Mathematical/Logical Deduction Specialist.
+You are given the verified problem transcription from Stage 1 AND the original screenshot.
+Your mandate is to derive the definitive solution from absolute first principles.
+
+UNRESTRICTED THINKING PROTOCOL:
+You have COMPLETE, UNRESTRICTED THINKING FREEDOM inside <think>...</think>. Take as many thinking tokens and thought steps as you want. Do not restrict, compress, or abbreviate your reasoning.
+1. FORMULATION & UNITS:
+   - State foundational formulas, laws, theorems, and definitions.
+   - Explicitly harmonize all dimensional units (e.g. km/h to m/s, minutes to hours, currency, percentages).
+   - If logic puzzle, sequence, or structure: construct the exact positional array, grid, or relational hierarchy.
+   - If code/algorithm: trace invariants, memory complexity, pointer states, and edge conditions.
+2. EXHAUSTIVE STEP-BY-STEP CALCULATION:
+   - Calculate blind from first principles without looking at or biasing toward multiple-choice options.
+   - Show all intermediate arithmetic, algebra, simplifications, and logic deductions explicitly.
+   - Double-check arithmetic calculations, signs, fractions, and square roots.
+3. VERIFICATION & SELF-CHECK:
+   - Reverse-substitute your calculated result back into the problem statement to confirm every condition holds with zero contradiction.
+
+OUTPUT FORMAT:
+Conclude your deep thought process inside </think>, then OUTSIDE <think>, output strictly:
+Derived Result: <exact calculated numeric value, equation, algorithm, or deduced identity>
+Key Derivation Summary: <2-3 sentence crisp explanation of how this was proven>`;
+
+  let stage2Stream = "";
+  const s2DisplayIdx = ((keyInfo.activeIndex + stage2KeyIdx) % totalKeys) + 1;
+  const stage2Res = await executeStage({
+    stageNum: 2,
+    stageName: "First-Principles Derivation",
+    assignedKeyIdx: stage2KeyIdx,
+    messages: [
+      { role: "system", content: STAGE2_SYSTEM },
+      { role: "user", content: [
+        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+        { type: "text", text: `Here is the structured deconstruction from Stage 1:\n\n${stage1Text}\n\nSolve it from first principles. Take as much thought process as needed in <think> tags with zero restriction, and conclude with Derived Result: <exact answer>.` }
+      ]}
+    ],
+    maxTokens: 4096,
+    statusMessage: "Unrestricted deep reasoning from first principles…",
+    onChunk: (chunk) => {
+      stage2Stream = chunk;
+      const clean = stripThinkTags(stage2Stream);
+      const isThinking = stage2Stream.length > 0 && !clean;
+      const tokenEst = Math.round(stage2Stream.length / 3.8);
+      const msg = isThinking 
+        ? `⚡ [Key #${s2DisplayIdx}/${totalKeys}] Stage 2/3: Unrestricted Deep Reasoning in progress… (~${tokenEst} thought tokens)`
+        : `⚡ [Key #${s2DisplayIdx}/${totalKeys}] Stage 2/3: Derivation complete:\n\n${clean}`;
+      updateStreamingOverlay(msg, "detailed");
+    }
+  });
+
+  if (!stage2Res.ok) {
+    showAnswerOverlay(`⚠️ Stage 2 Error:\n${stage2Res.error}`);
+    return;
+  }
+
+  const stage2Text = stripThinkTags(stage2Res.text).trim();
+
+  // ── Stage 3: Adversarial Trap Verification & Final Answer Formulation ──
+  const STAGE3_SYSTEM = `You are a Principal Academic Examiner & Adversarial Distractor Auditor.
+You are given:
+1. The original question screenshot.
+2. The structured extraction and candidate options from Stage 1.
+3. The independent first-principles derivation from Stage 2.
+
+YOUR MANDATE: AUDIT TRAPS & DELIVER THE DEFINITIVE FINAL ANSWER.
+Inside <think>...</think>, audit with unrestricted depth:
+1. ADVERSARIAL TRAP AUDIT:
+   - Check every classic test-maker trap:
+     * Question asking for initial vs final value vs change?
+     * Diameter vs radius?
+     * Markup % vs profit %?
+     * Downstream vs upstream?
+     * Total time vs additional/extra time?
+     * Negative qualifiers: NOT, EXCEPT, LEAST, MUST, CANNOT BE TRUE, FALSE?
+   - Compare Stage 2's derived result against the problem constraints to ensure no trap was missed.
+2. OPTION RECONCILIATION:
+   - Check selector markers in the image: SQUARE CHECKBOXES (☐ / [ ], multi-select) vs CIRCULAR RADIO BUTTONS (○ / ( ), single choice).
+   - For single-choice: identify the ONE matching option and explicitly eliminate all distractors.
+   - For multi-select: evaluate each candidate option independently and identify ALL correct options.
+
+CRITICAL: THE USER ONLY WANTS THE DIRECT FINAL ANSWER.
+Conclude inside </think>, then OUTSIDE <think> tags, respond strictly with:
+Why: <one crisp, complete sentence explaining why the selected answer is correct and avoids distractor traps>
+${answerStyle === "mcq" ? `Correct Option(s): <Option Letter(s)> — <full option text(s)> (e.g. "Option B — 45 km/h" or "Options A, C — ...")` :
+answerStyle === "short" ? `Final Answer: <the direct final answer>` :
+`Correct Option(s) / Final Answer: <the direct final answer or option(s)>
+
+Key Steps:
+<clean, concise 3-4 bullet point summary of the verified solution>`}`;
+
+  let stage3Stream = "";
+  const s3DisplayIdx = ((keyInfo.activeIndex + stage3KeyIdx) % totalKeys) + 1;
+  const stage3Res = await executeStage({
+    stageNum: 3,
+    stageName: "Trap Verification & Option Reconciliation",
+    assignedKeyIdx: stage3KeyIdx,
+    messages: [
+      { role: "system", content: STAGE3_SYSTEM },
+      { role: "user", content: [
+        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+        { type: "text", text: `Verify the derivation against the original question and candidate options in the image. Eliminate traps and provide the final answer:\n\n[STRUCTURED PROBLEM & OPTIONS FROM STAGE 1]:\n${stage1Text}\n\n[INDEPENDENT DERIVATION FROM STAGE 2]:\n${stage2Text}` }
+      ]}
+    ],
+    maxTokens: 4096,
+    statusMessage: "Auditing traps & finalizing answer…",
+    onChunk: (chunk) => {
+      stage3Stream = chunk;
+      const clean = stripThinkTags(stage3Stream);
+      const isThinking = stage3Stream.length > 0 && !clean;
+      const tokenEst = Math.round(stage3Stream.length / 3.8);
+      if (isThinking) {
+        updateStreamingOverlay(`⚡ [Key #${s3DisplayIdx}/${totalKeys}] Stage 3/3: Adversarial Trap & Option Audit… (~${tokenEst} thought tokens)`, answerStyle);
+      } else {
+        updateStreamingOverlay(stage3Stream, answerStyle);
+      }
+    }
+  });
+
+  if (!stage3Res.ok) {
+    showAnswerOverlay(`⚠️ Stage 3 Error:\n${stage3Res.error}`);
+    return;
+  }
+
+  // Advance key index by 3 in background storage
+  try {
+    const res = await chrome.storage.local.get(["providerKeyIndices"]);
+    const storedIndices = res.providerKeyIndices || {};
+    storedIndices.Groq = ((storedIndices.Groq || 0) + (allKeys.length >= 3 ? 3 : allKeys.length)) % totalKeys;
+    await chrome.storage.local.set({ providerKeyIndices: storedIndices });
+  } catch (e) {}
+
+  const cleanAnswer = stripThinkTags(stage3Res.text).trim();
+
+  showAnswerOverlay(cleanAnswer, {
+    style: answerStyle,
+    autoSelect,
+    meta: {
+      provider: "Groq (🔬 3-Stage Unrestricted Engine)",
+      keyIndex: stage3Res.keyIndex,
+      totalKeys
+    },
+    isDerivation: forceStyle === "detailed"
+  });
+}
+
+
+// ── Approach 2: Parallel Dual-Key Consensus Engine (~1.5s) ──
+async function callAptitudeParallelDualKey(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject }) {
+  const groqKeysRaw = (keys || {}).Groq || "";
+  const groqParsed = groqKeysRaw.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
+  if (groqParsed.length === 0) {
+    showAnswerOverlay(
+      `⚠️ No Groq API key found!\n\n` +
+      `👉 How to configure:\n` +
+      `1. Click the extension icon in the Chrome toolbar.\n` +
+      `2. Paste your Groq API key(s) in the Groq API Key box.\n` +
+      `3. Click '💾 Save'.\n\n` +
+      `💡 Get a free API key at https://console.groq.com/keys`
+    );
+    return;
+  }
+
+  const keyInfo = await getRotatedGroqKeys(keys);
+  const allKeys = keyInfo.keys.length > 0 ? keyInfo.keys : groqParsed;
+  const totalKeys = keyInfo.total || allKeys.length;
+  const groqModels = getGroqVisionModels(customModel, lastGood.GroqModel);
+  const model = groqModels[0] || "qwen/qwen3.8-27b";
+
+  const key1 = allKeys[0];
+  const key2 = allKeys.length > 1 ? allKeys[1] : allKeys[0];
+  const key1Display = ((keyInfo.activeIndex) % totalKeys) + 1;
+  const key2Display = allKeys.length > 1 ? (((keyInfo.activeIndex + 1) % totalKeys) + 1) : key1Display;
+
+  console.log(`[hs-parallel] Running Dual-Key Engine: Worker 1 on Key #${key1Display}, Worker 2 on Key #${key2Display}`);
+  showLoadingOverlay(`⚡ [Parallel Dual-Key] Solving & Auditing across Keys #${key1Display} & #${key2Display}…`);
+
+  const domainPersona = getSubjectPersona(subject);
+  const SOLVER_SYSTEM = `${domainPersona}
+Analyze the problem in the screenshot from absolute first principles:
+1. Parse parameters, strict dimensional units, and explicit constraints.
+2. Selector Check: Note whether options use SQUARE CHECKBOXES (☐ / [ ], multi-select) or CIRCULAR RADIO BUTTONS (○ / ( ), single choice).
+3. Compute the exact solution blind from first principles with full arithmetic and logical rigor.
+4. Output format:
+Inside <think>...</think>, show the concise derivation (under 120 words).
+Then OUTSIDE <think>, respond strictly with:
+Why: <one short line explaining the exact derivation>
+${answerStyle === "mcq" ? "Correct Option(s): <Option Letter(s)> — <full option text(s)>" : answerStyle === "short" ? "Final Answer: <the direct final answer>" : "Final Answer: <the direct final answer>\n\nDerivation:\n<step-by-step breakdown>"}`;
+
+  const AUDITOR_SYSTEM = `You are an Elite Academic Examiner & Adversarial Distractor Auditor.
+Analyze the problem in the screenshot to catch deceptive traps:
+1. Trap Audit: Actively check for tricky pitfalls: diameter vs radius, downstream vs upstream, markup vs profit %, total time vs extra time, original vs final, and negative constraints (NOT, EXCEPT, LEAST, CANNOT, FALSE).
+2. Selector Check: Verify if options have square checkboxes (☐ = multi-select) or circular radio buttons (○ = single choice).
+3. Option Elimination: Test each candidate option directly against problem conditions and eliminate distractors.
+4. Output format:
+Inside <think>...</think>, audit traps and verify options concisely (under 120 words).
+Then OUTSIDE <think>, respond strictly with:
+Why: <one short line explaining why this option avoids traps and is correct>
+${answerStyle === "mcq" ? "Correct Option(s): <Option Letter(s)> — <full option text(s)>" : answerStyle === "short" ? "Final Answer: <the direct final answer>" : "Final Answer: <the direct final answer>\n\nTrap Audit & Verification:\n<step-by-step audit>"}`;
+
+  const userPrompt = answerStyle === "mcq" ?
+    "Solve the question in this screenshot accurately. Check for square checkboxes (multi-select) vs radio buttons. Output Why and Correct Option(s)." :
+    answerStyle === "short" ?
+    "Solve the question in this screenshot accurately from first principles. Output Why and Final Answer." :
+    "Solve the question in this screenshot accurately. Provide complete derivation and final answer.";
+
+  let streamText1 = "";
+  let streamText2 = "";
+  let liveAnswerRendered = false;
+
+  const onChunk1 = (text) => {
+    streamText1 = text;
+    if (!liveAnswerRendered) {
+      updateStreamingOverlay(streamText1, answerStyle);
+      const parts = parseAnswer(stripThinkTags(streamText1));
+      if (parts.correct || parts.final) liveAnswerRendered = true;
+    }
+  };
+
+  const onChunk2 = (text) => {
+    streamText2 = text;
+    if (!liveAnswerRendered) {
+      updateStreamingOverlay(streamText2, answerStyle);
+      const parts = parseAnswer(stripThinkTags(streamText2));
+      if (parts.correct || parts.final) liveAnswerRendered = true;
+    }
+  };
+
+  const maxTokens = (answerStyle === "detailed" || forceStyle === "detailed") ? 1200 : 650;
+
+  // Launch BOTH calls at the exact same moment across the two distinct keys!
+  const worker1Promise = callStream({
+    provider: "Groq",
+    key: key1,
+    keyIndex: 0,
+    totalKeys,
+    model,
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    headers: { "Authorization": `Bearer ${key1}`, "Content-Type": "application/json" },
+    body: {
+      model,
+      messages: [
+        { role: "system", content: SOLVER_SYSTEM },
+        { role: "user", content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+          { type: "text", text: userPrompt }
+        ]}
+      ],
+      max_completion_tokens: maxTokens,
+      max_tokens: maxTokens,
+      reasoning_format: "raw"
+    },
+    deadlineMs: 12000,
+    onChunk: onChunk1
+  });
+
+  const worker2Promise = callStream({
+    provider: "Groq",
+    key: key2,
+    keyIndex: allKeys.length > 1 ? 1 : 0,
+    totalKeys,
+    model,
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    headers: { "Authorization": `Bearer ${key2}`, "Content-Type": "application/json" },
+    body: {
+      model,
+      messages: [
+        { role: "system", content: AUDITOR_SYSTEM },
+        { role: "user", content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+          { type: "text", text: userPrompt }
+        ]}
+      ],
+      max_completion_tokens: maxTokens,
+      max_tokens: maxTokens,
+      reasoning_format: "raw"
+    },
+    deadlineMs: 12000,
+    onChunk: onChunk2
+  });
+
+  const [res1Result, res2Result] = await Promise.allSettled([worker1Promise, worker2Promise]);
+
+  const res1 = res1Result.status === "fulfilled" ? res1Result.value : { ok: false, error: res1Result.reason?.message };
+  const res2 = res2Result.status === "fulfilled" ? res2Result.value : { ok: false, error: res2Result.reason?.message };
+
+  if (res1.ok) chrome.storage.local.set({ lastGood: { GroqModel: model } }).catch(() => {});
+  if (!res1.ok && isRateLimitError(res1.error)) markKeyRateLimited(key1);
+  if (!res2.ok && isRateLimitError(res2.error)) markKeyRateLimited(key2);
+
+  if (!res1.ok && !res2.ok) {
+    showAnswerOverlay(`⚠️ Dual-Key Error:\nWorker 1 (Key #${key1Display}): ${res1.error || "failed"}\nWorker 2 (Key #${key2Display}): ${res2.error || "failed"}`);
+    return;
+  }
+
+  const clean1 = res1.ok ? stripThinkTags(res1.text) : "";
+  const clean2 = res2.ok ? stripThinkTags(res2.text) : "";
+  const parts1 = parseAnswer(clean1);
+  const parts2 = parseAnswer(clean2);
+
+  let chosenOutput = "";
+  let consensus = false;
+
+  const getOptLetter = (text) => {
+    const m = String(text || "").match(/\b([A-E])\b/i);
+    return m ? m[1].toUpperCase() : "";
+  };
+
+  const letter1 = getOptLetter(parts1.correct || parts1.final);
+  const letter2 = getOptLetter(parts2.correct || parts2.final);
+
+  if (res1.ok && res2.ok && letter1 && letter2 && letter1 === letter2) {
+    consensus = true;
+    chosenOutput = clean2 || clean1;
+  } else if (res2.ok && (parts2.correct || parts2.final)) {
+    chosenOutput = clean2;
+  } else if (res1.ok && (parts1.correct || parts1.final)) {
+    chosenOutput = clean1;
+  } else {
+    chosenOutput = clean2 || clean1 || "Could not parse answer.";
+  }
+
+  // Advance key index by 2 in background storage
+  try {
+    const res = await chrome.storage.local.get(["providerKeyIndices"]);
+    const storedIndices = res.providerKeyIndices || {};
+    storedIndices.Groq = ((storedIndices.Groq || 0) + (allKeys.length >= 2 ? 2 : 1)) % totalKeys;
+    await chrome.storage.local.set({ providerKeyIndices: storedIndices });
+  } catch (e) {}
+
+  showAnswerOverlay(chosenOutput, {
+    style: answerStyle,
+    autoSelect,
+    meta: {
+      provider: consensus ? "Groq (⚡ Parallel Dual-Key Consensus)" : "Groq (⚡ Parallel Dual-Key)",
+      keyIndex: 0,
+      totalKeys
+    },
+    isDerivation: forceStyle === "detailed"
+  });
+}
+
+// ── Approach 3: 2-Stage Pipeline (Solver ➔ Crosschecker) ──
+async function callAptitudeDecoupledPipeline(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject }) {
+  const groqKeysRaw = (keys || {}).Groq || "";
+  const groqParsed = groqKeysRaw.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
+  if (groqParsed.length === 0) {
+    showAnswerOverlay(
+      `⚠️ No Groq API key found!\n\n` +
+      `👉 How to configure:\n` +
+      `1. Click the extension icon in the Chrome toolbar.\n` +
+      `2. Paste your Groq API key(s) in the Groq API Key box.\n` +
+      `3. Click '💾 Save'.\n\n` +
+      `💡 Get a free API key at https://console.groq.com/keys`
+    );
+    return;
+  }
+
+  const keyInfo = await getRotatedGroqKeys(keys);
+  const allKeys = keyInfo.keys.length > 0 ? keyInfo.keys : groqParsed;
+  const totalKeys = keyInfo.total || allKeys.length;
+  const groqModels = getGroqVisionModels(customModel, lastGood.GroqModel);
+  const model = groqModels[0] || "qwen/qwen3.8-27b";
+
+  // Distinct keys across the two stages
+  const key1 = allKeys[0];
+  const key2 = allKeys.length > 1 ? allKeys[1] : allKeys[0];
+  const key1Display = ((keyInfo.activeIndex) % totalKeys) + 1;
+  const key2Display = allKeys.length > 1 ? (((keyInfo.activeIndex + 1) % totalKeys) + 1) : key1Display;
+
+  // ── STAGE 1: First-Principles Solver (Key 1) ──
+  showLoadingOverlay(`⚡ [Key #${key1Display}/${totalKeys}] Stage 1/2: Solving question from first principles…`);
+
+  const domainPersona = getSubjectPersona(subject);
+  const STAGE1_SOLVER_SYSTEM = `${domainPersona}
+You are an Elite Problem Solver.
+Analyze the problem in the screenshot and solve it directly from absolute first principles.
+
+MANDATORY SOLVING PROTOCOL:
+Solve the problem with complete rigor inside <think>...</think>:
+1. QUESTION DECONSTRUCTION & UNITS:
+   - Identify the exact question, all given values, and dimensional units.
+   - Harmonize units explicitly (e.g. km/h to m/s, minutes to hours, currency, percentages).
+   - Check option selector: SQUARE CHECKBOXES (☐ / [ ], multi-select) vs CIRCULAR RADIO BUTTONS (○ / ( ), single choice).
+   - Note negative qualifiers: NOT, EXCEPT, LEAST, MUST, FALSE.
+2. STEP-BY-STEP DERIVATION:
+   - State foundational formulas and principles.
+   - Show all intermediate arithmetic, algebra, or logical deduction steps clearly.
+3. PRELIMINARY ANSWER:
+   - State the derived result and identify the matching candidate option.
+
+OUTPUT FORMAT:
+Conclude inside </think>, then OUTSIDE <think>, provide:
+Derived Solution:
+<step-by-step derivation and calculations>
+
+Preliminary Answer:
+${answerStyle === "mcq" ? "Option(s): <Option Letter(s)> — <full option text(s)>" : "Final Answer: <the calculated result>"}`;
+
+  let stage1Stream = "";
+  const onChunkStage1 = (chunk) => {
+    stage1Stream = chunk;
+    const clean = stripThinkTags(stage1Stream);
+    const isThinking = stage1Stream.length > 0 && !clean;
+    const tokenEst = Math.round(stage1Stream.length / 3.8);
+    const msg = isThinking 
+      ? `⚡ [Key #${key1Display}/${totalKeys}] Stage 1/2: Solving from first principles… (~${tokenEst} thought tokens)`
+      : `⚡ [Key #${key1Display}/${totalKeys}] Stage 1/2: Solution generated:\n\n${clean}`;
+    updateStreamingOverlay(msg, "detailed");
+  };
+
+  let stage1Res = await callStream({
+    provider: "Groq",
+    key: key1,
+    keyIndex: 0,
+    totalKeys,
+    model,
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    headers: { "Authorization": `Bearer ${key1}`, "Content-Type": "application/json" },
+    body: {
+      model,
+      messages: [
+        { role: "system", content: STAGE1_SOLVER_SYSTEM },
+        { role: "user", content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+          { type: "text", text: "Solve this question directly from first principles. Show the step-by-step derivation and state the preliminary answer clearly." }
+        ]}
+      ],
+      max_completion_tokens: 3500,
+      max_tokens: 3500,
+      reasoning_format: "raw"
+    },
+    deadlineMs: 45000,
+    onChunk: onChunkStage1
+  });
+
+  if (!stage1Res.ok) {
+    if (isRateLimitError(stage1Res.error)) markKeyRateLimited(key1);
+    if (allKeys.length > 1) {
+      console.warn(`[hs-2stage] Stage 1 failed on Key #${key1Display}, failing over to Key #${key2Display}...`);
+      stage1Res = await callStream({
+        provider: "Groq",
+        key: key2,
+        keyIndex: 1,
+        totalKeys,
+        model,
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        headers: { "Authorization": `Bearer ${key2}`, "Content-Type": "application/json" },
+        body: {
+          model,
+          messages: [
+            { role: "system", content: STAGE1_SOLVER_SYSTEM },
+            { role: "user", content: [
+              { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+              { type: "text", text: "Solve this question directly from first principles. Show the step-by-step derivation and state the preliminary answer clearly." }
+            ]}
+          ],
+          max_completion_tokens: 3500,
+          max_tokens: 3500,
+          reasoning_format: "raw"
+        },
+        deadlineMs: 45000,
+        onChunk: onChunkStage1
+      });
+    }
+  }
+
+  if (!stage1Res.ok || !stage1Res.text) {
+    showAnswerOverlay(`⚠️ Stage 1 Solve Error:\n${stage1Res.error || "Failed to solve problem."}`);
+    return;
+  }
+
+  const stage1Text = stripThinkTags(stage1Res.text).trim();
+
+  // ── STAGE 2: Adversarial Crosschecker & Trap Auditor (Key 2) ──
+  showLoadingOverlay(`⚡ [Key #${key2Display}/${totalKeys}] Stage 2/2: Crosschecking derivation & traps…`);
+
+  const STAGE2_CROSSCHECK_SYSTEM = `You are a Principal Academic Examiner & Adversarial Crosschecker.
+You are given:
+1. The original question screenshot.
+2. The preliminary solution and answer derived by Solver in Stage 1.
+
+YOUR MANDATE: CROSSCHECK & ADVERSARIALLY VERIFY THE SOLUTION.
+Inside <think>...</think>, audit the solution with rigorous depth:
+1. ARITHMETIC & CALCULATION AUDIT:
+   - Re-calculate every mathematical operation independently from the image pixels.
+   - Did Stage 1 make any arithmetic slip, sign mistake, rounding error, or unit conversion error?
+2. TRAP & DISTRACTOR AUDIT:
+   - Did the question ask for initial vs final value? Diameter vs radius? Markup vs profit %? Downstream vs upstream? Total time vs extra time?
+   - Did Stage 1 miss negative qualifiers (NOT, EXCEPT, LEAST, CANNOT BE TRUE, FALSE)?
+   - For multi-select square checkboxes (☐ / [ ]), verify whether multiple options are correct.
+   - For single-choice radio buttons (○ / ( )), eliminate all distractors.
+3. VERDICT:
+   - If Stage 1 was correct: validate it with 100% certainty.
+   - If Stage 1 made an error: correct the derivation and supply the true answer.
+
+OUTPUT FORMAT:
+Conclude inside </think>, then OUTSIDE <think>, respond strictly with:
+Why: <one crisp, definitive sentence explaining why this verified answer is correct and avoids traps>
+${answerStyle === "mcq" ? `Correct Option(s): <Option Letter(s)> — <full option text(s)> (e.g. "Option B — 45 km/h" or "Options A, C — ...")` :
+  answerStyle === "short" ? `Final Answer: <the direct final answer>` :
+  `Final Answer: <the direct final answer>\n\nVerified Steps:\n<clean breakdown>`}`;
+
+  let stage2Stream = "";
+  const onChunkStage2 = (chunk) => {
+    stage2Stream = chunk;
+    const clean = stripThinkTags(stage2Stream);
+    const isThinking = stage2Stream.length > 0 && !clean;
+    const tokenEst = Math.round(stage2Stream.length / 3.8);
+    if (isThinking) {
+      updateStreamingOverlay(`⚡ [Key #${key2Display}/${totalKeys}] Stage 2/2: Crosschecking & Auditing traps… (~${tokenEst} thought tokens)`, answerStyle);
+    } else {
+      updateStreamingOverlay(stage2Stream, answerStyle);
+    }
+  };
+
+  let stage2Res = await callStream({
+    provider: "Groq",
+    key: key2,
+    keyIndex: allKeys.length > 1 ? 1 : 0,
+    totalKeys,
+    model,
+    url: "https://api.groq.com/openai/v1/chat/completions",
+    headers: { "Authorization": `Bearer ${key2}`, "Content-Type": "application/json" },
+    body: {
+      model,
+      messages: [
+        { role: "system", content: STAGE2_CROSSCHECK_SYSTEM },
+        { role: "user", content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+          { type: "text", text: `Here is the preliminary solution and answer derived by Solver in Stage 1:\n\n${stage1Text}\n\nCrosscheck this solution against the screenshot. Re-calculate every step independently, audit for test-maker traps, verify all options, and output the final verified answer.` }
+        ]}
+      ],
+      max_completion_tokens: 3500,
+      max_tokens: 3500,
+      reasoning_format: "raw"
+    },
+    deadlineMs: 45000,
+    onChunk: onChunkStage2
+  });
+
+  if (!stage2Res.ok) {
+    if (isRateLimitError(stage2Res.error)) markKeyRateLimited(key2);
+    if (allKeys.length > 1) {
+      console.warn(`[hs-2stage] Stage 2 failed on Key #${key2Display}, failing over to Key #${key1Display}...`);
+      stage2Res = await callStream({
+        provider: "Groq",
+        key: key1,
+        keyIndex: 0,
+        totalKeys,
+        model,
+        url: "https://api.groq.com/openai/v1/chat/completions",
+        headers: { "Authorization": `Bearer ${key1}`, "Content-Type": "application/json" },
+        body: {
+          model,
+          messages: [
+            { role: "system", content: STAGE2_CROSSCHECK_SYSTEM },
+            { role: "user", content: [
+              { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
+              { type: "text", text: `Here is the preliminary solution and answer derived by Solver in Stage 1:\n\n${stage1Text}\n\nCrosscheck this solution against the screenshot. Re-calculate every step independently, audit for test-maker traps, verify all options, and output the final verified answer.` }
+            ]}
+          ],
+          max_completion_tokens: 3500,
+          max_tokens: 3500,
+          reasoning_format: "raw"
+        },
+        deadlineMs: 45000,
+        onChunk: onChunkStage2
+      });
+    }
+  }
+
+  // Advance persistent key indices by 2 in background storage
+  try {
+    const res = await chrome.storage.local.get(["providerKeyIndices"]);
+    const storedIndices = res.providerKeyIndices || {};
+    storedIndices.Groq = ((storedIndices.Groq || 0) + (allKeys.length >= 2 ? 2 : 1)) % totalKeys;
+    await chrome.storage.local.set({ providerKeyIndices: storedIndices });
+  } catch (e) {}
+
+  chrome.storage.local.set({ lastGood: { GroqModel: model } }).catch(() => {});
+
+  if (stage2Res.ok && stage2Res.text) {
+    const cleanAnswer = stripThinkTags(stage2Res.text).trim();
+    showAnswerOverlay(cleanAnswer, {
+      style: answerStyle,
+      autoSelect,
+      meta: {
+        provider: "Groq (🎯 2-Stage Solve ➔ Crosscheck)",
+        keyIndex: 1,
+        totalKeys
+      },
+      isDerivation: forceStyle === "detailed"
+    });
+  } else {
+    // If Stage 2 completely failed, fall back to Stage 1 solution!
+    showAnswerOverlay(stage1Text, {
+      style: answerStyle,
+      autoSelect,
+      meta: {
+        provider: "Groq (Stage 1 Solver - Crosscheck failed)",
+        keyIndex: 0,
+        totalKeys
+      },
+      isDerivation: forceStyle === "detailed"
+    });
+  }
+}
+
+
+// ── Call AI API (Orchestrator with Multi-Approach Dispatching) ─
 async function callAPI(b64, { forceStyle } = {}) {
   const loadingStatus = forceStyle === "detailed" ? "Generating step-by-step derivation..." : "Solving question...";
   showLoadingOverlay(loadingStatus);
@@ -839,9 +1604,12 @@ async function callAPI(b64, { forceStyle } = {}) {
     return;
   }
 
-  let keys, style, models, subject, lastGood, autoSelect;
+  let keys, style, models, subject, lastGood, autoSelect, globalApproach, subjectApproaches, quickApproach;
   try {
-    const data = await chrome.storage.local.get(["keys", "style", "models", "subject", "lastGood", "autoSelect"]);
+    const data = await chrome.storage.local.get([
+      "keys", "style", "models", "subject", "lastGood", "autoSelect",
+      "globalApproach", "subjectApproaches", "quickApproach"
+    ]);
     keys = data.keys;
     style = data.style;
     models = data.models;
@@ -852,6 +1620,9 @@ async function callAPI(b64, { forceStyle } = {}) {
       chrome.storage.local.set({ lastGood: { ...lastGood, GroqModel: undefined } }).catch(() => {});
     }
     autoSelect = !!data.autoSelect;
+    globalApproach = data.globalApproach || "normal";
+    subjectApproaches = data.subjectApproaches || {};
+    quickApproach = data.quickApproach || "global";
   } catch (e) {
     showAnswerOverlay("Extension context invalidated. Please refresh this page (F5).");
     return;
@@ -863,22 +1634,69 @@ async function callAPI(b64, { forceStyle } = {}) {
   }
   const answerStyle = forceStyle || style || "detailed";
 
-  const aptitudePersona = "You are an Elite Quantitative Aptitude, Logical Reasoning & Mathematics Specialist. You master both numerical aptitude and logical deduction:\n" +
-    "- Quantitative Aptitude: Exact calculations for percentages, ratios, profit & loss, work & time, speed-time-distance, averages, mixtures, number series, simple/compound interest, geometry, mensuration, and algebraic equations. Pay strict attention to units and dimensional consistency.\n" +
-    "- Logical Reasoning & Puzzles: Formal deductions for linear/circular seating arrangements, family trees & blood relations, syllogisms (strict Venn logic), direction sense, input-output machines, coding-decoding, and matrix elimination grids. Never make unstated assumptions.";
+  // Normalize subject identifier
+  const subjectKey = (subject === "logical-reasoning") ? "aptitude-reasoning" : (subject || "auto");
 
-  const subjectPersona = {
-    auto: "You are an Expert Academic Tutor & Multi-Disciplinary Problem Solver. Rigorously analyze problems across sciences, engineering, mathematics, and humanities from first principles. Extract given parameters, verify step-by-step logic, and check for negative constraints (NOT, EXCEPT, LEAST).",
-    "aptitude-reasoning": aptitudePersona,
-    "logical-reasoning": aptitudePersona,
-    "prob-stats": "You are a Senior Probability & Mathematical Statistics Specialist. Rigorously analyze discrete and continuous probability distributions (Binomial, Poisson, Normal, Exponential), conditional probability, Bayes' Theorem, expected value, variance, hypothesis testing, p-values, regression, and combinatorics (permutations & combinations). Verify sample spaces and independence assumptions before calculating.",
-    "ai-finance": "You are a Senior Quantitative Finance & AI for Finance Specialist. Rigorously analyze financial mathematics, options pricing, Sharpe/Sortino ratios, risk models (VaR), portfolio optimization, time value of money, trading logic, and ML/RAG evaluation metrics with financial and algorithmic precision.",
-    "dsa": "You are a Principal Algorithms Engineer & Competitive Programming Specialist. Rigorously analyze data structures (trees, graphs, heaps, hash maps, tries) and algorithmic techniques (DP, two pointers, sliding window, binary search, DFS/BFS). Trace invariants, time/space complexity, and boundary edge cases (null, empty, single element, cycles, integer overflow).",
-    "backend-dev": "You are a Staff Backend Systems Engineer. Rigorously analyze code logic, HTTP specifications, REST/GraphQL APIs, database queries (SQL/NoSQL transactions, indexing), authentication/JWT, concurrency, race conditions, and error-handling semantics.",
-    "communication": "You are an Expert in Linguistic Analysis, English Grammar, and Verbal Ability. Rigorously analyze grammatical correctness (subject-verb agreement, modifiers, tense, parallelism), vocabulary in context, reading comprehension logic, sentence completion, and argument structures."
-  };
+  // Determine Effective Reasoning Approach:
+  // 1. Quick popup override (if not "global")
+  // 2. Domain-specific setting (if not "global")
+  // 3. Global approach setting (default: "normal")
+  let effectiveApproach = (quickApproach && quickApproach !== "global") ? quickApproach : null;
+  if (!effectiveApproach) {
+    const custom = (subjectApproaches || {})[subjectKey];
+    if (custom && custom !== "global") {
+      effectiveApproach = custom;
+    }
+  }
+  if (!effectiveApproach) {
+    effectiveApproach = globalApproach || "normal";
+  }
 
-  const domainIntro = subjectPersona[subject || "auto"] || subjectPersona["auto"];
+  console.log(`[hs] Subject: "${subjectKey}", Effective Approach: "${effectiveApproach}"`);
+
+  // Dispatch to chosen approach engine
+  if (effectiveApproach === "parallel-dual") {
+    await callAptitudeParallelDualKey(b64, {
+      forceStyle,
+      answerStyle,
+      keys,
+      customModel,
+      lastGood,
+      autoSelect,
+      subject: subjectKey
+    });
+    return;
+  }
+
+  if (effectiveApproach === "decoupled-2stage") {
+    await callAptitudeDecoupledPipeline(b64, {
+      forceStyle,
+      answerStyle,
+      keys,
+      customModel,
+      lastGood,
+      autoSelect,
+      subject: subjectKey
+    });
+    return;
+  }
+
+  if (effectiveApproach === "sequential-3stage") {
+    await callAptitudeSequential3Stage(b64, {
+      forceStyle,
+      answerStyle,
+      keys,
+      customModel,
+      lastGood,
+      autoSelect,
+      subject: subjectKey
+    });
+    return;
+  }
+
+  // ── Fall-through: Normal Single-Pass Engine (~1.2s) ──
+  const domainIntro = getSubjectPersona(subjectKey);
+
 
   const reasoningProtocol = `
 TWO-STEP REASONING PROTOCOL:

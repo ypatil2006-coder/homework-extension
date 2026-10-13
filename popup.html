@@ -247,6 +247,96 @@
       font-weight: 600;
       color: var(--primary);
     }
+    .update-banner {
+      margin: 10px 14px 0;
+      background: linear-gradient(135deg, rgba(200, 78, 27, 0.12) 0%, rgba(155, 83, 41, 0.16) 100%);
+      border: 1px solid rgba(200, 78, 27, 0.35);
+      border-radius: 9px;
+      padding: 9px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(200, 78, 27, 0.08);
+      animation: updateSlideDown 0.2s ease-out;
+    }
+    @keyframes updateSlideDown {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .update-banner-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .update-banner-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #9e3d17;
+    }
+    .update-pulse-dot {
+      width: 7px;
+      height: 7px;
+      background: #c84e1b;
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 rgba(200, 78, 27, 0.7);
+      animation: pulseAnim 1.8s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulseAnim {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(200, 78, 27, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(200, 78, 27, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(200, 78, 27, 0); }
+    }
+    .update-dismiss-btn {
+      padding: 2px 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 11px;
+      border-radius: 4px;
+      line-height: 1;
+    }
+    .update-dismiss-btn:hover {
+      color: var(--text-primary);
+      background: rgba(0, 0, 0, 0.05);
+    }
+    .update-banner-body {
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+    .update-action-btn {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(200, 78, 27, 0.3);
+      background: var(--popup-btn-grad);
+      color: #fffaf5;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 2px 6px var(--primary-glow);
+      transition: all 0.12s ease;
+    }
+    .update-action-btn:hover {
+      background: var(--popup-btn-hover);
+      transform: translateY(-1px);
+    }
+    .update-status-msg {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #1d6638;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -255,6 +345,23 @@
       <span>📚 Homework Solver</span>
     </div>
     <span class="badge" id="popupThemeBadge">Groq ⚡</span>
+  </div>
+
+  <div id="updateBanner" class="update-banner" style="display: none;">
+    <div class="update-banner-header">
+      <div class="update-banner-title">
+        <span class="update-pulse-dot"></span>
+        <span>Update Available: <strong id="updateVerText">v1.2.0</strong></span>
+      </div>
+      <button id="dismissUpdateBtn" class="update-dismiss-btn" title="Dismiss" type="button">✕</button>
+    </div>
+    <div class="update-banner-body">
+      <span>Backup keys & download latest release</span>
+    </div>
+    <button id="oneClickUpdateBtn" class="update-action-btn" type="button">
+      <span>📦 1-Click Update</span>
+    </button>
+    <div id="popupUpdateStatus" class="update-status-msg" style="display: none;"></div>
   </div>
 
   <div class="content">
@@ -272,6 +379,17 @@
         <option value="backend-dev">⚙️ Backend Development</option>
         <option value="ai-finance">🤖 AI For Finance</option>
         <option value="communication">💬 Verbal & Communication</option>
+      </select>
+    </div>
+
+    <div class="field-group">
+      <label for="approachSelect">Reasoning Approach</label>
+      <select id="approachSelect">
+        <option value="global">🌐 Follow Domain Setting</option>
+        <option value="normal">⚡ Normal (Single-Pass ~1.2s)</option>
+        <option value="parallel-dual">⚡ Dual Keys (Parallel ~1.5s)</option>
+        <option value="decoupled-2stage">🎯 2-Stage Pipeline (Solve ➔ Crosscheck)</option>
+        <option value="sequential-3stage">🔬 3-Stage Unrestricted Engine</option>
       </select>
     </div>
 
@@ -304,6 +422,7 @@
   </div>
 
   <script src="themes.js"></script>
+  <script src="updater.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
