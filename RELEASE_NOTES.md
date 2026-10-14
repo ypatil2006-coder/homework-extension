@@ -21,6 +21,11 @@ A high-speed, unobtrusive screen-snipping browser assistant for students, develo
   - Full, comprehensive chronological changelog across all releases (`v1.0.0` through `v1.4.0`).
   - One-click access to check for updates and review release architecture.
 
+- **⭐ Star on GitHub with Explicit User Consent Dialog**:
+  - Added Star Repo buttons in the Options header, What's New banner, Updates tab, and Extension Popup.
+  - Interactive Pop-up Modal dialog transparently requests user consent before opening GitHub.
+  - Safe, automated star handler in `content.js`: checks if already starred (never unstars!) and clicks the star button when not yet starred.
+
 ---
 
 ### 🚀 Homework Solver v1.3.0 — 2-Stage Verification Pipeline, 1-Click Updates & Custom Approaches
@@ -54,7 +59,7 @@ A high-speed, unobtrusive screen-snipping browser assistant for students, develo
 
 ### 📦 How to Install / Update Unpacked
 
-1. Download `homework-solver-v1.3.0.zip` below and extract it.
+1. Download `homework-solver-v1.4.0.zip` below and extract it.
 2. Open Google Chrome and navigate to `chrome://extensions/`.
 3. Enable **Developer mode** using the toggle in the top-right corner.
 4. Click **Load unpacked** (or click the 🔁 **Reload** button on the existing extension).
