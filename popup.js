@@ -173,3 +173,57 @@ async function initPopupUpdateBanner() {
 }
 
 initPopupUpdateBanner();
+
+// ── GitHub Star Repo Consent Flow for Popup ──────────
+function initPopupStarFlow() {
+  const starBtn = document.getElementById("popupStarRepoBtn");
+  const modal = document.getElementById("popupStarModal");
+  const cancelBtn = document.getElementById("popupCancelStarBtn");
+  const confirmBtn = document.getElementById("popupConfirmStarBtn");
+
+  if (!starBtn || !modal) return;
+
+  function refreshStarredStatus() {
+    chrome.storage.local.get(["hasStarredRepo"], (data) => {
+      if (data.hasStarredRepo) {
+        starBtn.innerHTML = "<span>⭐ Starred on GitHub (Thanks!)</span>";
+      }
+    });
+  }
+
+  refreshStarredStatus();
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.hasStarredRepo) {
+      refreshStarredStatus();
+    }
+  });
+
+  starBtn.addEventListener("click", () => {
+    modal.style.display = "flex";
+  });
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+  }
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.style.display = "none";
+    }
+  });
+
+  if (confirmBtn) {
+    confirmBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+      chrome.storage.local.set({ pendingStarIntent: true, starRequestedAt: Date.now() }, () => {
+        chrome.tabs.create({ url: "https://github.com/ypatil2006-coder/homework-extension#autostar=1" });
+        window.close();
+      });
+    });
+  }
+}
+
+initPopupStarFlow();
+

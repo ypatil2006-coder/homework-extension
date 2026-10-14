@@ -132,7 +132,7 @@ async function checkForExtensionUpdates({ force = false } = {}) {
 // theme customizations, optics, and shortcuts into a portable JSON file.
 async function exportExtensionSettings() {
   const keysToExport = [
-    "api", "keys", "models", "subject", "style", "autoSelect",
+    "api", "keys", "models", "subject", "style", "autoSelect", "dotMode", "dotSize", "dotOpacity", "hsDotPos", "hasStarredRepo",
     "globalApproach", "subjectApproaches", "quickApproach",
     "snipCursor", "customCursorUrl",
     "snipThemeMode", "snipCustomTheme", "answerThemeMode", "answerCustomTheme", "splitAnswerTheme",

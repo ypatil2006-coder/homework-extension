@@ -789,7 +789,7 @@ if (ansBlurSlider) {
 // Load saved settings from chrome.storage.local
 function loadSettings() {
   chrome.storage.local.get([
-    "keys", "models", "style", "subject", "autoSelect", "snipCursor", "customCursorUrl",
+    "keys", "models", "style", "subject", "autoSelect", "dotMode", "dotSize", "dotOpacity", "snipCursor", "customCursorUrl",
     "globalApproach", "subjectApproaches",
     "snipThemeMode", "snipCustomTheme", "answerThemeMode", "answerCustomTheme", "splitAnswerTheme",
     "tabThemeMode", "tabCustomTheme", "themeMode", "customTheme", "themeScope",
@@ -814,6 +814,23 @@ function loadSettings() {
     document.getElementById("subjectSelect").value = savedSubject;
     document.getElementById("styleSelect").value = data.style || "detailed";
     document.getElementById("autoSelectCb").checked = !!data.autoSelect;
+
+    const dotMode = !!data.dotMode;
+    const dotToggle = document.getElementById("dotModeToggle");
+    if (dotToggle) dotToggle.checked = dotMode;
+
+    const dotSize = typeof data.dotSize === "number" ? data.dotSize : 11;
+    const dotOpacity = typeof data.dotOpacity === "number" ? data.dotOpacity : 50;
+
+    const s1 = document.getElementById("dotSizeSlider");
+    const v1 = document.getElementById("dotSizeVal");
+    if (s1) s1.value = dotSize;
+    if (v1) v1.innerText = `${dotSize}px`;
+
+    const o1 = document.getElementById("dotOpacitySlider");
+    const ov1 = document.getElementById("dotOpacityVal");
+    if (o1) o1.value = dotOpacity;
+    if (ov1) ov1.innerText = `${dotOpacity}%`;
 
     // Load Global Reasoning Approach & Domain Customizations
     const globalApproach = data.globalApproach || "normal";
@@ -953,6 +970,12 @@ function saveSettings(callback) {
   const subject = document.getElementById("subjectSelect").value;
   const style = document.getElementById("styleSelect").value;
   const autoSelect = document.getElementById("autoSelectCb").checked;
+  const dotToggle = document.getElementById("dotModeToggle");
+  const dotMode = dotToggle ? dotToggle.checked : false;
+  const sizeEl = document.getElementById("dotSizeSlider");
+  const dotSize = sizeEl ? Number(sizeEl.value) : 11;
+  const opacityEl = document.getElementById("dotOpacitySlider");
+  const dotOpacity = opacityEl ? Number(opacityEl.value) : 50;
   const snipCursor = document.getElementById("cursorPresetSelect").value;
   const customCursorUrl = document.getElementById("customCursorUrlInput").value.trim();
 
@@ -980,6 +1003,9 @@ function saveSettings(callback) {
       subject,
       style,
       autoSelect,
+      dotMode,
+      dotSize,
+      dotOpacity,
       globalApproach,
       subjectApproaches,
       snipCursor,
@@ -1038,6 +1064,31 @@ document.querySelectorAll(".subject-approach-select").forEach(sel => {
   sel.addEventListener("change", () => saveSettings());
 });
 
+const dotModeToggle = document.getElementById("dotModeToggle");
+if (dotModeToggle) {
+  dotModeToggle.addEventListener("change", () => saveSettings());
+}
+
+const dotSizeSlider = document.getElementById("dotSizeSlider");
+const dotSizeVal = document.getElementById("dotSizeVal");
+if (dotSizeSlider) {
+  dotSizeSlider.addEventListener("input", (e) => {
+    const num = Number(e.target.value);
+    if (dotSizeVal) dotSizeVal.innerText = `${num}px`;
+    chrome.storage.local.set({ dotSize: num });
+  });
+}
+
+const dotOpacitySlider = document.getElementById("dotOpacitySlider");
+const dotOpacityVal = document.getElementById("dotOpacityVal");
+if (dotOpacitySlider) {
+  dotOpacitySlider.addEventListener("input", (e) => {
+    const num = Number(e.target.value);
+    if (dotOpacityVal) dotOpacityVal.innerText = `${num}%`;
+    chrome.storage.local.set({ dotOpacity: num });
+  });
+}
+
 // Reset to Defaults
 document.getElementById("resetDefaultsBtn").addEventListener("click", () => {
   if (confirm("Reset all settings and restore defaults?")) {
@@ -1085,6 +1136,9 @@ document.getElementById("resetDefaultsBtn").addEventListener("click", () => {
         subject: "auto",
         style: "detailed",
         autoSelect: false,
+        dotMode: false,
+        dotSize: 11,
+        dotOpacity: 50,
         globalApproach: "normal",
         subjectApproaches: {},
         quickApproach: "global",
@@ -1268,6 +1322,20 @@ async function initUpdateAndBackupUI() {
     });
   }
 
+  // "What's New" Tab Check Updates Button
+  const whatsnewCheckBtn = document.getElementById("whatsnewCheckUpdatesBtn");
+  if (whatsnewCheckBtn) {
+    whatsnewCheckBtn.addEventListener("click", async () => {
+      whatsnewCheckBtn.disabled = true;
+      whatsnewCheckBtn.innerHTML = "<span>🔄 Checking...</span>";
+      await performCheck(true);
+      setTimeout(() => {
+        whatsnewCheckBtn.disabled = false;
+        whatsnewCheckBtn.innerHTML = "<span>🔄 Check for Updates</span>";
+      }, 600);
+    });
+  }
+
   // 1-Click Full Update (Export Backup + Download Latest Release)
   if (oneClickFullBtn) {
     oneClickFullBtn.addEventListener("click", async () => {
@@ -1444,7 +1512,7 @@ function initTabNavigation() {
   // Restore active tab from URL hash or sessionStorage
   const hash = window.location.hash ? window.location.hash.replace("#", "") : "";
   const savedTab = sessionStorage.getItem("hs_active_tab");
-  let initialTab = "tab-api";
+  let initialTab = "tab-whatsnew";
 
   if (hash) {
     const candidate = hash.startsWith("tab-") ? hash : `tab-${hash}`;
@@ -1457,7 +1525,7 @@ function initTabNavigation() {
 
   const headerVersionBadge = document.getElementById("headerVersionBadge");
   if (headerVersionBadge) {
-    headerVersionBadge.addEventListener("click", () => switchTab("tab-backup"));
+    headerVersionBadge.addEventListener("click", () => switchTab("tab-whatsnew"));
   }
 }
 
@@ -1473,3 +1541,75 @@ document.querySelectorAll(".chip-btn").forEach(btn => {
     }
   });
 });
+
+// ── GitHub Star Repo Consent Flow ──────────
+function initStarRepoModalFlow() {
+  const modal = document.getElementById("starRepoModal");
+  const closeBtn = document.getElementById("closeStarModalBtn");
+  const cancelBtn = document.getElementById("cancelStarModalBtn");
+  const confirmBtn = document.getElementById("confirmStarModalBtn");
+  const headerBtn = document.getElementById("headerStarRepoBtn");
+  const whatsnewBtn = document.getElementById("whatsnewStarRepoBtn");
+  const backupBtn = document.getElementById("backupStarRepoBtn");
+  const headerStarText = document.getElementById("headerStarText");
+
+  if (!modal) return;
+
+  function openModal() {
+    modal.style.display = "flex";
+  }
+
+  function closeModal() {
+    modal.style.display = "none";
+  }
+
+  // Update button labels if already starred
+  function refreshStarredStatus() {
+    chrome.storage.local.get(["hasStarredRepo"], (data) => {
+      if (data.hasStarredRepo) {
+        if (headerStarText) headerStarText.textContent = "Starred ⭐";
+        if (headerBtn) headerBtn.title = "You have starred Homework Solver on GitHub! Click to visit.";
+        if (whatsnewBtn) whatsnewBtn.innerHTML = "<span>⭐ Starred on GitHub (Thanks!)</span>";
+        if (backupBtn) backupBtn.innerHTML = "<span>⭐ Starred (Thanks!)</span>";
+      }
+    });
+  }
+
+  refreshStarredStatus();
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.hasStarredRepo) {
+      refreshStarredStatus();
+    }
+  });
+
+  [headerBtn, whatsnewBtn, backupBtn].forEach(btn => {
+    if (btn) btn.addEventListener("click", openModal);
+  });
+
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+
+  // Close when clicking backdrop outside dialog
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // Close on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modal.style.display === "flex") {
+      closeModal();
+    }
+  });
+
+  if (confirmBtn) {
+    confirmBtn.addEventListener("click", () => {
+      closeModal();
+      chrome.storage.local.set({ pendingStarIntent: true, starRequestedAt: Date.now() }, () => {
+        chrome.tabs.create({ url: "https://github.com/ypatil2006-coder/homework-extension#autostar=1" });
+      });
+    });
+  }
+}
+
+initStarRepoModalFlow();
+

@@ -230,6 +230,93 @@
     .more-settings-btn:active {
       transform: scale(0.96);
     }
+    .star-repo-btn {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(200, 78, 27, 0.1) 100%);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.1s ease, background 0.12s ease, border-color 0.12s ease;
+      box-shadow: 0 1px 4px rgba(245, 158, 11, 0.08);
+      margin-top: 1px;
+    }
+    .star-repo-btn:hover {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.24) 0%, rgba(200, 78, 27, 0.18) 100%);
+      border-color: rgba(245, 158, 11, 0.6);
+      transform: translateY(-1px);
+    }
+    .star-repo-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Modal Backdrop for Popup */
+    .popup-modal-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(20, 10, 5, 0.6);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      animation: modalFadeIn 0.15s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .popup-modal-dialog {
+      background: var(--sand-bg-start, #fffaf5);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      width: 100%;
+    }
+    .popup-subtle-btn {
+      padding: 6px 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid var(--glass-border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .popup-subtle-btn:hover {
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--text-primary);
+    }
+    .popup-confirm-star-btn {
+      padding: 6px 14px;
+      font-size: 11.5px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: none;
+      background: linear-gradient(135deg, #d97706, #b45309);
+      color: #ffffff;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
+    }
+    .popup-confirm-star-btn:hover {
+      background: linear-gradient(135deg, #b45309, #92400e);
+    }
     .footer {
       padding: 9px 15px 11px;
       text-align: center;
@@ -415,10 +502,31 @@
     <button id="openSettingsBtn" class="more-settings-btn" type="button">
       <span>⚙️ More Settings (New Tab) ↗</span>
     </button>
+
+    <button id="popupStarRepoBtn" class="star-repo-btn" type="button">
+      <span>⭐ Star us on GitHub</span>
+    </button>
   </div>
 
   <div class="footer">
     Shortcut: <kbd>Alt</kbd> + <kbd>C</kbd> to snip anytime
+  </div>
+
+  <!-- Compact Star Consent Modal for Popup -->
+  <div id="popupStarModal" class="popup-modal-backdrop" style="display: none;">
+    <div class="popup-modal-dialog">
+      <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 6px;">
+        <span style="font-size: 16px;">⭐</span>
+        <strong style="font-size: 13px; color: var(--text-primary); font-family: 'Playfair Display', Georgia, serif;">Support Homework Solver</strong>
+      </div>
+      <p style="font-size: 11.5px; color: var(--text-secondary); line-height: 1.45; margin: 6px 0 14px;">
+        Starring our GitHub repo keeps updates free and active! If you're signed in to GitHub, we'll automatically star it for you.
+      </p>
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button id="popupCancelStarBtn" type="button" class="popup-subtle-btn">Later</button>
+        <button id="popupConfirmStarBtn" type="button" class="popup-confirm-star-btn">⭐ Open & Star</button>
+      </div>
+    </div>
   </div>
 
   <script src="themes.js"></script>

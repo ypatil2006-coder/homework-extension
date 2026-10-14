@@ -1,8 +1,29 @@
-### 🚀 Homework Solver v1.3.0 — 2-Stage Verification Pipeline, 1-Click Updates & Custom Approaches
+### 🚀 Homework Solver v1.4.0 — Ultra-Discreet Floating Dot Mode & What's New Hub
 
 A high-speed, unobtrusive screen-snipping browser assistant for students, developers, and test-takers powered by Groq LPU vision inference (`qwen/qwen3.8-27b`).
 
 ---
+
+### ⚡ Highlights & What's New in v1.4.0
+
+- **🔘 Ultra-Discreet Floating Dot Mode**:
+  - When enabled in **Tab 5: Answer Pop-up**, snipping an image will **never** automatically open or disrupt your screen with an answer window.
+  - The answer is derived silently in the background while a tiny, minimalist floating indicator appears.
+  - Clicking the dot instantly expands the full answer pop-up whenever you're ready.
+
+- **🎛️ Precision Sliders for Dot Size & Opacity (Down to 0)**:
+  - **Dot Size Slider (0px to 32px)**: Decrease the indicator diameter freely. At `0px`, the visual dot disappears completely while retaining an invisible 22px click point.
+  - **Dot Opacity Slider (0% to 100%)**: Adjust resting translucency. At `0%`, it enters full ghost mode with a subtle proximity hint on hover.
+  - Styled in a clean, unified single-shade dark slate tone (`#1e293b` / `rgba(30, 41, 59, 0.5)`).
+
+- **✨ What's New Tab & Product Evolution Log**:
+  - Added as the **first tab at the start** of the Options dashboard (`tab-whatsnew`).
+  - Full, comprehensive chronological changelog across all releases (`v1.0.0` through `v1.4.0`).
+  - One-click access to check for updates and review release architecture.
+
+---
+
+### 🚀 Homework Solver v1.3.0 — 2-Stage Verification Pipeline, 1-Click Updates & Custom Approaches
 
 ### ⚡ Highlights & What's New in v1.3.0
 

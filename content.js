@@ -16,6 +16,13 @@ let startX, startY, selectionBox;
 let screenshotDataUrl = null;
 let lastCroppedBase64 = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem("hs_last_crop") : null;
 let savedOverlayPos = null;
+let savedDotPos = null;
+let currentDotMode = false;
+let currentDotSize = 11;
+let currentDotOpacity = 50;
+let currentDotExpanded = false;
+let pendingAnswerPayload = null;
+let lastLoadingStatus = "Solving question...";
 
 let currentSnipCursor = "crosshair";
 let currentCustomCursorUrl = "";
@@ -272,7 +279,7 @@ function rethemeLiveAnswerOverlay() {
 if (typeof chrome !== "undefined" && chrome.storage?.local) {
   try {
     chrome.storage.local.get([
-      "hsOverlayPos", "snipCursor", "customCursorUrl",
+      "hsOverlayPos", "hsDotPos", "dotMode", "dotSize", "dotOpacity", "snipCursor", "customCursorUrl",
       "snipThemeMode", "snipCustomTheme", "answerThemeMode", "answerCustomTheme", "splitAnswerTheme",
       "themeMode", "customTheme",
       "snipDimming", "snipBorderThickness", "snipFillOpacity", "snipBorderStyle", "snipBorderGlow", "snipShowHint",
@@ -281,6 +288,10 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
     ], (res) => {
       if (res) {
         if (res.hsOverlayPos) savedOverlayPos = res.hsOverlayPos;
+        if (res.hsDotPos) savedDotPos = res.hsDotPos;
+        if (res.dotMode !== undefined) currentDotMode = !!res.dotMode;
+        if (res.dotSize !== undefined) currentDotSize = Number(res.dotSize);
+        if (res.dotOpacity !== undefined) currentDotOpacity = Number(res.dotOpacity);
         if (res.snipCursor) currentSnipCursor = res.snipCursor;
         if (res.customCursorUrl) currentCustomCursorUrl = res.customCursorUrl;
         if (res.snipDimming !== undefined) currentSnipDimming = Number(res.snipDimming);
@@ -311,6 +322,16 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
     });
     chrome.storage.onChanged?.addListener((changes, area) => {
       if (area === "local") {
+        if (changes.dotMode !== undefined) currentDotMode = !!changes.dotMode.newValue;
+        if (changes.dotSize !== undefined) {
+          currentDotSize = Number(changes.dotSize.newValue);
+          applyDotOptics(document.getElementById("hs-dot-trigger"));
+        }
+        if (changes.dotOpacity !== undefined) {
+          currentDotOpacity = Number(changes.dotOpacity.newValue);
+          applyDotOptics(document.getElementById("hs-dot-trigger"));
+        }
+        if (changes.hsDotPos) savedDotPos = changes.hsDotPos.newValue;
         if (changes.snipCursor) currentSnipCursor = changes.snipCursor.newValue;
         if (changes.customCursorUrl) currentCustomCursorUrl = changes.customCursorUrl.newValue;
         if (changes.snipDimming !== undefined) currentSnipDimming = Number(changes.snipDimming.newValue);
@@ -1597,7 +1618,12 @@ ${answerStyle === "mcq" ? `Correct Option(s): <Option Letter(s)> — <full optio
 // ── Call AI API (Orchestrator with Multi-Approach Dispatching) ─
 async function callAPI(b64, { forceStyle } = {}) {
   const loadingStatus = forceStyle === "detailed" ? "Generating step-by-step derivation..." : "Solving question...";
-  showLoadingOverlay(loadingStatus);
+  if (forceStyle === "detailed") {
+    currentDotExpanded = true;
+  } else {
+    currentDotExpanded = false;
+    pendingAnswerPayload = null;
+  }
 
   if (!isContextValid()) {
     showAnswerOverlay("Extension reloaded. Please refresh this page (F5) to continue.");
@@ -1607,9 +1633,14 @@ async function callAPI(b64, { forceStyle } = {}) {
   let keys, style, models, subject, lastGood, autoSelect, globalApproach, subjectApproaches, quickApproach;
   try {
     const data = await chrome.storage.local.get([
-      "keys", "style", "models", "subject", "lastGood", "autoSelect",
+      "keys", "style", "models", "subject", "lastGood", "autoSelect", "dotMode", "dotSize", "dotOpacity", "hsDotPos",
       "globalApproach", "subjectApproaches", "quickApproach"
     ]);
+    if (data.dotMode !== undefined) currentDotMode = !!data.dotMode;
+    if (data.dotSize !== undefined) currentDotSize = Number(data.dotSize);
+    if (data.dotOpacity !== undefined) currentDotOpacity = Number(data.dotOpacity);
+    if (data.hsDotPos) savedDotPos = data.hsDotPos;
+
     keys = data.keys;
     style = data.style;
     models = data.models;
@@ -1627,6 +1658,8 @@ async function callAPI(b64, { forceStyle } = {}) {
     showAnswerOverlay("Extension context invalidated. Please refresh this page (F5).");
     return;
   }
+
+  showLoadingOverlay(loadingStatus);
 
   let customModel = (models || {})["Groq"] || "";
   if (DEPRECATED_GROQ_MODELS.has(customModel)) {
@@ -2235,6 +2268,9 @@ function getCleanAnswerOnly(rawText, parts) {
 
 // ── Streaming Live Overlay Painter ─────────────────
 function updateStreamingOverlay(partialText, style) {
+  if (currentDotMode && !currentDotExpanded) {
+    return;
+  }
   let box = document.getElementById("hs-answer-overlay");
   let isNew = false;
   if (!box) {
@@ -2345,8 +2381,227 @@ function updateStreamingOverlay(partialText, style) {
   document.getElementById("hs-close").onclick = removeExistingOverlay;
 }
 
+// ── Discreet Floating Dot Engine ───────────────────
+function applyDotOptics(dotEl) {
+  if (!dotEl) return;
+  const size = typeof currentDotSize === "number" ? Math.max(0, currentDotSize) : 11;
+  const op = typeof currentDotOpacity === "number" ? Math.max(0, Math.min(100, currentDotOpacity)) : 50;
+  dotEl.style.setProperty("--hs-dot-size", `${size}px`);
+  dotEl.style.setProperty("--hs-dot-opacity", `${op / 100}`);
+}
+
+function showDotOverlay({ state = "solving", status = "Solving question...", pendingAnswer = null } = {}) {
+  // Save position of existing box if any, and remove it
+  const oldBox = document.getElementById("hs-answer-overlay");
+  if (oldBox) {
+    saveCurrentOverlayPosition(oldBox);
+    oldBox.remove();
+  }
+
+  let dot = document.getElementById("hs-dot-trigger");
+  if (!dot) {
+    dot = document.createElement("div");
+    dot.id = "hs-dot-trigger";
+
+    if (!document.getElementById("hs-dot-styles")) {
+      const styleEl = document.createElement("style");
+      styleEl.id = "hs-dot-styles";
+      styleEl.textContent = `
+        #hs-dot-trigger {
+          --hs-dot-size: 11px;
+          --hs-dot-opacity: 0.5;
+          position: fixed;
+          width: var(--hs-dot-size);
+          height: var(--hs-dot-size);
+          border-radius: 50%;
+          background: #1e293b;
+          opacity: var(--hs-dot-opacity);
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 1px 2px rgba(0, 0, 0, 0.2);
+          z-index: 2147483647;
+          cursor: pointer;
+          display: block;
+          box-sizing: border-box;
+          user-select: none;
+          -webkit-user-select: none;
+          transform: translateZ(0);
+          transition: opacity 0.2s ease, transform 0.15s ease, width 0.15s ease, height 0.15s ease;
+        }
+        #hs-dot-trigger::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 22px;
+          height: 22px;
+          min-width: 22px;
+          min-height: 22px;
+          border-radius: 50%;
+        }
+        #hs-dot-trigger:hover {
+          transform: scale(1.3);
+          opacity: calc(var(--hs-dot-opacity) + 0.35) !important;
+        }
+        #hs-dot-trigger:active {
+          transform: scale(0.9);
+          opacity: calc(var(--hs-dot-opacity) + 0.4) !important;
+        }
+        #hs-dot-trigger.hs-dot-solving {
+          background: #1e293b;
+          animation: hsDotSolvingPulse 1.4s infinite ease-in-out;
+        }
+        @keyframes hsDotSolvingPulse {
+          0%, 100% { opacity: calc(var(--hs-dot-opacity) * 0.45); }
+          50% { opacity: var(--hs-dot-opacity); }
+        }
+        #hs-dot-trigger.hs-dot-ready {
+          background: #1e293b;
+          opacity: var(--hs-dot-opacity);
+        }
+        #hs-dot-trigger.hs-dot-error {
+          background: #1e293b;
+          opacity: calc(var(--hs-dot-opacity) * 0.8);
+          animation: hsDotErrorShake 0.3s ease;
+        }
+        @keyframes hsDotErrorShake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-2px); }
+          75% { transform: translateX(2px); }
+        }
+        #hs-dot-trigger.hs-dot-stealth {
+          background: #1e293b !important;
+          opacity: calc(var(--hs-dot-opacity) * 0.5) !important;
+          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+          animation: none !important;
+        }
+      `;
+      document.head.appendChild(styleEl);
+    }
+
+    let left = 24;
+    let top = window.innerHeight - 30;
+    if (savedDotPos && typeof savedDotPos.left === "number" && typeof savedDotPos.top === "number") {
+      left = Math.max(6, Math.min(savedDotPos.left, window.innerWidth - 18));
+      top = Math.max(6, Math.min(savedDotPos.top, window.innerHeight - 18));
+    } else if (savedOverlayPos && typeof savedOverlayPos.left === "number" && typeof savedOverlayPos.top === "number") {
+      left = Math.max(6, Math.min(savedOverlayPos.left, window.innerWidth - 18));
+      top = Math.max(6, Math.min(savedOverlayPos.top, window.innerHeight - 18));
+    }
+
+    dot.style.left = `${left}px`;
+    dot.style.top = `${top}px`;
+    dot.innerHTML = "";
+
+    // ── Mouse Drag & Click Handling ──
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let initialLeft = left;
+    let initialTop = top;
+
+    const onMouseMove = (e) => {
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      if (!isDragging && Math.hypot(dx, dy) > 4) {
+        isDragging = true;
+      }
+      if (isDragging) {
+        const curLeft = Math.max(6, Math.min(initialLeft + dx, window.innerWidth - 18));
+        const curTop = Math.max(6, Math.min(initialTop + dy, window.innerHeight - 18));
+        dot.style.left = `${curLeft}px`;
+        dot.style.top = `${curTop}px`;
+      }
+    };
+
+    const onMouseUp = (e) => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+
+      if (isDragging) {
+        const rect = dot.getBoundingClientRect();
+        savedDotPos = { left: Math.round(rect.left), top: Math.round(rect.top) };
+        try {
+          if (isContextValid() && chrome.storage?.local) {
+            chrome.storage.local.set({ hsDotPos: savedDotPos });
+          }
+        } catch (err) {}
+      } else {
+        // Genuine click -> expand answer pop-up
+        expandAnswerFromDot();
+      }
+    };
+
+    dot.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return; // left click only
+      isDragging = false;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      const rect = dot.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    });
+
+    // Right-click dismisses dot
+    dot.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeExistingOverlay();
+    });
+
+    document.body.appendChild(dot);
+  }
+
+  // Apply current size & opacity CSS custom properties
+  applyDotOptics(dot);
+
+  // Update status and styling
+  dot.className = "";
+  if (currentAnswerStealthMode) {
+    dot.classList.add("hs-dot-stealth");
+  }
+
+  if (state === "ready") {
+    dot.classList.add("hs-dot-ready");
+    dot.title = "Answer ready! Click to pop up (Right-click or Alt+D to dismiss)";
+  } else if (state === "error") {
+    dot.classList.add("hs-dot-error");
+    dot.title = `⚠️ ${status} (Click to pop up)`;
+  } else {
+    dot.classList.add("hs-dot-solving");
+    dot.title = `${status} (Click to pop up)`;
+  }
+}
+
+function expandAnswerFromDot() {
+  currentDotExpanded = true;
+  const dot = document.getElementById("hs-dot-trigger");
+  if (dot) {
+    const rect = dot.getBoundingClientRect();
+    savedOverlayPos = {
+      left: Math.max(10, Math.min(Math.round(rect.left), window.innerWidth - currentAnswerWidth - 10)),
+      top: Math.max(10, Math.min(Math.round(rect.top), window.innerHeight - 300))
+    };
+    dot.remove();
+  }
+
+  if (pendingAnswerPayload) {
+    const payload = pendingAnswerPayload;
+    pendingAnswerPayload = null;
+    showAnswerOverlay(payload.answer, payload.options);
+  } else {
+    showLoadingOverlay(lastLoadingStatus || "Solving question...");
+  }
+}
+
 // ── Loading overlay ────────────────────────────────
 function showLoadingOverlay(statusText = "Solving question...") {
+  lastLoadingStatus = statusText;
+  if (currentDotMode && !currentDotExpanded) {
+    showDotOverlay({ state: "solving", status: statusText });
+    return;
+  }
   removeExistingOverlay();
   const inp = getAnswerEffectiveInp();
   const box = document.createElement("div");
@@ -2597,6 +2852,27 @@ function selectOptionOnPage(optionText) {
 
 // ── Answer overlay — bottom left ───────────────────
 function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDerivation } = {}) {
+  if (currentDotMode && !currentDotExpanded) {
+    pendingAnswerPayload = { answer, options: { style, truncated, autoSelect, meta, isDerivation } };
+
+    // If auto-select is enabled, trigger page selection silently in the background
+    if (autoSelect) {
+      const cleanAnswer = stripThinkTags(answer);
+      const parts = parseAnswer(cleanAnswer);
+      if (parts.correct) {
+        selectOptionOnPage(parts.correct);
+      }
+    }
+
+    const isErr = answer && (answer.startsWith("⚠️") || answer.startsWith("Error:") || answer.startsWith("No Groq API key") || answer.startsWith("Extension"));
+    showDotOverlay({
+      state: isErr ? "error" : "ready",
+      status: isErr ? answer : "Answer ready! Click to pop up",
+      pendingAnswer: pendingAnswerPayload
+    });
+    return;
+  }
+
   const existing = document.getElementById("hs-answer-overlay");
   if (existing) {
     saveCurrentOverlayPosition(existing);
@@ -2926,4 +3202,234 @@ function removeExistingOverlay() {
     saveCurrentOverlayPosition(old);
     old.remove();
   }
+  const dot = document.getElementById("hs-dot-trigger");
+  if (dot) {
+    dot.remove();
+  }
 }
+
+// ── GitHub Auto-Star Handler for Official Repository ──────────────
+function initGitHubAutoStarFlow() {
+  try {
+    const host = window.location.hostname || "";
+    if (!host.endsWith("github.com")) return;
+
+    const path = (window.location.pathname || "").toLowerCase();
+    if (!path.includes("ypatil2006-coder/homework-extension")) return;
+
+    const hasHashIntent = window.location.hash.includes("autostar") || window.location.hash.includes("star");
+
+    chrome.storage.local.get(["pendingStarIntent", "starRequestedAt", "hasStarredRepo"], (data) => {
+      const isRecent = data.starRequestedAt && (Date.now() - data.starRequestedAt < 300000); // 5-minute active window
+      const isTargeted = hasHashIntent || (data.pendingStarIntent && isRecent);
+
+      if (!isTargeted) return;
+
+      // Clean up intent flags so it never re-fires on manual reloads
+      chrome.storage.local.remove(["pendingStarIntent", "starRequestedAt"]);
+      if (hasHashIntent) {
+        try {
+          history.replaceState(null, "", window.location.pathname + window.location.search);
+        } catch (e) {}
+      }
+
+      runGitHubStarAction();
+    });
+  } catch (err) {
+    console.warn("[Homework Solver] GitHub auto-star error:", err);
+  }
+}
+
+function runGitHubStarAction() {
+  let attempts = 0;
+  const maxAttempts = 35; // ~8.75s polling to accommodate client-side React hydration
+  let finished = false;
+
+  const checkInterval = setInterval(() => {
+    if (finished) return;
+    attempts++;
+
+    // 1. Check if user has already starred the repo
+    if (isGitHubRepoAlreadyStarred()) {
+      finished = true;
+      clearInterval(checkInterval);
+      chrome.storage.local.set({ hasStarredRepo: true });
+      showGitHubNotificationToast({
+        title: "⭐ Already Starred!",
+        message: "You have already starred Homework Solver on GitHub. Thank you for your support!",
+        status: "already_starred"
+      });
+      return;
+    }
+
+    // 2. Look for star button to click
+    const starBtn = findGitHubStarButton();
+    if (starBtn) {
+      finished = true;
+      clearInterval(checkInterval);
+
+      const ariaLabel = (starBtn.getAttribute("aria-label") || "").toLowerCase();
+      const requiresSignIn = ariaLabel.includes("must be signed in") || ariaLabel.includes("sign in");
+
+      try {
+        starBtn.focus();
+        starBtn.click();
+      } catch (err) {
+        console.warn("[Homework Solver] Failed to click GitHub star button:", err);
+      }
+
+      if (requiresSignIn) {
+        showGitHubNotificationToast({
+          title: "⭐ Sign In to Star",
+          message: "Please sign in to GitHub to complete starring Homework Solver. Thank you!",
+          status: "sign_in_required"
+        });
+      } else {
+        chrome.storage.local.set({ hasStarredRepo: true });
+        showGitHubNotificationToast({
+          title: "🎉 Thank You for Starring!",
+          message: "You have successfully starred Homework Solver on GitHub!",
+          status: "success"
+        });
+      }
+      return;
+    }
+
+    if (attempts >= maxAttempts) {
+      finished = true;
+      clearInterval(checkInterval);
+      console.log("[Homework Solver] Star button not found within hydration window.");
+    }
+  }, 250);
+}
+
+function isGitHubRepoAlreadyStarred() {
+  // 1. Aria-label check
+  if (document.querySelector('button[aria-label*="Unstar this repository" i]')) return true;
+  if (document.querySelector('form[action$="/unstar"]')) return true;
+  if (document.querySelector('.js-toggler-container.starred')) return true;
+
+  // 2. Button text check
+  const allButtons = Array.from(document.querySelectorAll('button'));
+  const unstarBtn = allButtons.find(btn => {
+    const label = (btn.getAttribute("aria-label") || "").toLowerCase();
+    const text = btn.textContent.trim().toLowerCase();
+    return label.includes("unstar this repository") || text === "starred" || text.startsWith("starred");
+  });
+  if (unstarBtn) return true;
+
+  // 3. Embedded JSON payload check
+  const embeddedData = document.querySelector('script[data-target="react-app.embeddedData"]');
+  if (embeddedData) {
+    try {
+      const data = JSON.parse(embeddedData.textContent);
+      if (data?.payload?.overview?.star?.viewerHasStarred === true || data?.payload?.sidebarAbout?.star?.viewerHasStarred === true) {
+        return true;
+      }
+    } catch (e) {}
+  }
+
+  return false;
+}
+
+function findGitHubStarButton() {
+  // Query common button selectors across GitHub's Primer & Legacy interfaces
+  const primaryCandidates = [
+    'button[aria-label^="Star this repository" i]',
+    'form[action$="/star"] button[type="submit"]',
+    'button[data-testid="star-button"]',
+    '.unstarred.js-toggler-container button[type="submit"]',
+    '#repository-details-container button:has(svg.octicon-star)',
+    '.repository-content button:has(svg.octicon-star)'
+  ];
+
+  for (const sel of primaryCandidates) {
+    try {
+      const el = document.querySelector(sel);
+      if (el) return el;
+    } catch (e) {}
+  }
+
+  // Fallback: look for buttons containing "Star" (excluding "Unstar" or "Starred")
+  const allButtons = Array.from(document.querySelectorAll('button'));
+  return allButtons.find(btn => {
+    const label = (btn.getAttribute("aria-label") || "").toLowerCase();
+    const text = btn.textContent.trim().toLowerCase();
+    if (label.includes("unstar") || text.startsWith("starred")) return false;
+    return label.includes("star this repository") || text === "star" || (btn.querySelector(".octicon-star") && text.includes("star"));
+  });
+}
+
+function showGitHubNotificationToast({ title, message, status }) {
+  const existing = document.getElementById("hs-github-star-toast");
+  if (existing) existing.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "hs-github-star-toast";
+  toast.style.cssText = `
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 9999999;
+    max-width: 380px;
+    background: #0f172a;
+    color: #f8fafc;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    border-radius: 14px;
+    padding: 14px 18px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4), 0 0 15px rgba(245, 158, 11, 0.15);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-sizing: border-box;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    animation: hsToastDropIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+
+  const isSuccess = status === "success" || status === "already_starred";
+  const iconEmoji = isSuccess ? "⭐" : "🔔";
+
+  toast.innerHTML = `
+    <style>
+      @keyframes hsToastDropIn {
+        from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+    </style>
+    <div style="font-size: 22px; line-height: 1; flex-shrink: 0; margin-top: 2px;">${iconEmoji}</div>
+    <div style="flex: 1; min-width: 0;">
+      <div style="font-weight: 700; font-size: 13.5px; color: #fbbf24; margin-bottom: 3px;">${escapeHtml(title)}</div>
+      <div style="font-size: 12px; line-height: 1.45; color: #cbd5e1;">${escapeHtml(message)}</div>
+    </div>
+    <button type="button" style="background: transparent; border: none; color: #94a3b8; font-size: 15px; cursor: pointer; padding: 0 0 0 6px; line-height: 1;">✕</button>
+  `;
+
+  const closeBtn = toast.querySelector("button");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(-8px)";
+      setTimeout(() => toast.remove(), 300);
+    });
+  }
+
+  document.body.appendChild(toast);
+
+  // Auto remove after 6 seconds
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(-8px)";
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 6000);
+}
+
+// Auto-run GitHub star detection
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initGitHubAutoStarFlow);
+} else {
+  initGitHubAutoStarFlow();
+}
+

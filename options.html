@@ -606,6 +606,123 @@
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     }
 
+    /* What's New & Release Changelog Styles */
+    .release-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+    }
+    .release-card {
+      background: var(--glass-surface);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      box-shadow: var(--glass-shadow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      position: relative;
+    }
+    .release-card:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-color: rgba(184, 158, 134, 0.65);
+    }
+    .release-card.latest-card {
+      border: 1.5px solid rgba(200, 78, 27, 0.45);
+      background: linear-gradient(135deg, rgba(200, 78, 27, 0.04) 0%, var(--glass-surface) 60%);
+    }
+    .release-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--glass-border-subtle);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .release-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .release-badge-pill {
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(135deg, #a45a2a 0%, #87431b 100%);
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(135, 67, 27, 0.25);
+    }
+    .release-badge-pill.prior {
+      background: var(--glass-surface-subtle);
+      color: var(--text-primary);
+      border: 1px solid var(--glass-border);
+      box-shadow: none;
+    }
+    .release-heading {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .release-flourish {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+    .release-status-badge {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .release-status-badge.current {
+      background: rgba(16, 185, 129, 0.15);
+      color: #065f46;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .release-status-badge.stable {
+      background: rgba(100, 116, 139, 0.12);
+      color: #334155;
+      border: 1px solid rgba(100, 116, 139, 0.25);
+    }
+    .release-feature-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .release-feature-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+    }
+    .release-bullet-icon {
+      font-size: 15px;
+      line-height: 1.35;
+      flex-shrink: 0;
+    }
+    .release-feature-content strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
     /* Sticky Bottom Bar */
     .save-bar {
       position: fixed;
@@ -963,6 +1080,160 @@
         padding: 18px 20px;
       }
     }
+
+    /* Star Repo Pill Button */
+    .star-pill-btn {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(217, 119, 6, 0.08));
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #b45309;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      outline: none;
+    }
+    .star-pill-btn:hover {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.28), rgba(217, 119, 6, 0.18));
+      border-color: rgba(245, 158, 11, 0.65);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(245, 158, 11, 0.22);
+    }
+    .star-pill-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Star Repository Consent Modal Backdrop & Dialog */
+    .hs-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(20, 10, 5, 0.65);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: hsModalFade 0.18s ease-out;
+    }
+    @keyframes hsModalFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .hs-modal-dialog {
+      background: var(--sand-bg-start, #fffdfa);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+      animation: hsModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+    @keyframes hsModalPop {
+      0% { opacity: 0; transform: scale(0.93) translateY(8px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .hs-modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, transparent 100%);
+    }
+    .hs-modal-title-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hs-modal-star-icon {
+      font-size: 26px;
+      filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.4));
+      flex-shrink: 0;
+    }
+    .hs-modal-title-box h3 {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      line-height: 1.25;
+    }
+    .hs-modal-flourish {
+      display: block;
+      font-family: var(--font-italian);
+      font-style: italic;
+      font-size: 12.5px;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+    .hs-modal-close {
+      background: transparent;
+      border: none;
+      font-size: 15px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.12s ease, color 0.12s ease;
+    }
+    .hs-modal-close:hover {
+      background: rgba(0, 0, 0, 0.06);
+      color: var(--text-primary);
+    }
+    .hs-modal-body {
+      padding: 20px 24px;
+    }
+    .hs-modal-feature-box {
+      background: rgba(245, 158, 11, 0.06);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .hs-modal-feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+    .hs-modal-check {
+      color: #b45309;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .hs-modal-feature-item code {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-family: var(--font-mono);
+      color: #b45309;
+    }
+    .hs-modal-privacy-note {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-top: 10px;
+    }
+    .hs-modal-footer {
+      padding: 16px 24px;
+      background: rgba(0, 0, 0, 0.02);
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -978,18 +1249,26 @@
         </div>
       </div>
       <div class="header-badges">
+        <button id="headerStarRepoBtn" class="provider-pill star-pill-btn" type="button" title="Support Homework Solver by starring the repository on GitHub">
+          <span>⭐</span>
+          <span id="headerStarText">Star Repo</span>
+        </button>
         <div class="provider-pill">
           <span>⚡ Groq Dedicated</span>
         </div>
         <div id="headerVersionBadge" class="provider-pill" style="cursor: pointer;" title="View Updates & Version">
-          <span id="headerVersionText">v1.3.0</span>
+          <span id="headerVersionText">v1.4.0</span>
         </div>
       </div>
     </div>
 
     <!-- 100% Width Horizontal Navigation Tabs Bar -->
     <div class="tabs-nav-bar" role="tablist">
-      <button class="nav-tab-btn active" data-tab="tab-api" role="tab" aria-selected="true">
+      <button class="nav-tab-btn active" data-tab="tab-whatsnew" role="tab" aria-selected="true">
+        <span class="tab-icon">✨</span>
+        <span class="tab-label">What's New</span>
+      </button>
+      <button class="nav-tab-btn" data-tab="tab-api" role="tab" aria-selected="false">
         <span class="tab-icon">🔑</span>
         <span class="tab-label">API & Models</span>
       </button>
@@ -1020,9 +1299,242 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- Tab 0: What's New & Product Evolution Log                        -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="tab-whatsnew" class="tab-pane active" role="tabpanel">
+      <div class="release-timeline">
+
+        <!-- Banner Intro Card -->
+        <div class="card" style="padding: 20px 26px; border-left: 4px solid var(--primary); background: linear-gradient(135deg, rgba(200, 78, 27, 0.05) 0%, var(--glass-surface) 100%);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <div style="font-family: var(--font-display); font-size: 19px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <span>✨ Product Evolution & Release Log</span>
+                <span class="card-subtitle-flourish">Cronologia Rilasci</span>
+              </div>
+              <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
+                Explore all verified updates, architectural advancements, and tactical features introduced across every release of Homework Solver.
+              </p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary" id="whatsnewCheckUpdatesBtn" style="padding: 8px 14px; font-size: 12.5px;">
+                <span>🔄 Check for Updates</span>
+              </button>
+              <button type="button" class="btn btn-primary" id="whatsnewStarRepoBtn" style="padding: 8px 14px; font-size: 12.5px; background: linear-gradient(135deg, #d97706, #b45309); border: none; box-shadow: 0 2px 8px rgba(217, 119, 6, 0.25);">
+                <span>⭐ Star on GitHub</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Release v1.4.0 (Latest Architecture) -->
+        <div class="release-card latest-card">
+          <div class="release-card-header">
+            <div class="release-meta-left">
+              <span class="release-badge-pill">v1.4.0</span>
+              <h3 class="release-heading">🔘 Ultra-Discreet Floating Dot Mode & Precision Sliders</h3>
+              <span class="release-flourish">Modalità Invisibile & Cursori Precisi</span>
+            </div>
+            <span class="release-status-badge current">Latest Release • Active</span>
+          </div>
+
+          <ul class="release-feature-list">
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🔘</span>
+              <div class="release-feature-content">
+                <strong>Ultra-Discreet Floating Dot Experience:</strong> When enabled, snipping an image will <em>never</em> automatically interrupt your screen with an answer window or loading card. Instead, a tiny, elegant floating dot appears quietly on screen while the AI derives the solution in the background. Clicking the dot expands the full answer overlay instantly right at the dot's position.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🎚️</span>
+              <div class="release-feature-content">
+                <strong>Precision Dot Size Slider (Decreasable to 0px):</strong> Full control over the diameter from <code>0px</code> to <code>32px</code> (default: <code>11px</code>). Decreasing to <code>0px</code> creates an absolute zero visual footprint on your screen while retaining an invisible 22px clickable touch target.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">👁️</span>
+              <div class="release-feature-content">
+                <strong>Ghost Opacity Slider (Decreasable to 0%):</strong> Seamlessly adjust resting opacity from <code>0%</code> to <code>100%</code> (default: <code>50%</code>). Setting to <code>0%</code> engages true ghost stealth mode, with soft proximity illumination on mouse hover so you never lose track of where to click.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🎨</span>
+              <div class="release-feature-content">
+                <strong>Minimalist Single-Shade Design:</strong> Eliminated all distracting multi-color flashes and concentric rings. The dot maintains a consistent, refined matte charcoal/slate shade (<code>#1e293b</code>) with soft breathing opacity while solving and a solid resting state when ready.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🔇</span>
+              <div class="release-feature-content">
+                <strong>Silent DOM Option Auto-Selection:</strong> When page auto-select is enabled alongside dot mode, matching options on test portals are selected in the background without forcing the answer window open.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🖱️</span>
+              <div class="release-feature-content">
+                <strong>Draggable with Position Memory & Quick Dismiss:</strong> Freely reposition the dot anywhere across your screen; coordinates are remembered across sessions (<code>hsDotPos</code>). Right-clicking the dot or pressing <kbd>Alt</kbd>+<kbd>D</kbd> dismisses it immediately.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🎯</span>
+              <div class="release-feature-content">
+                <strong>Dedicated Settings Location:</strong> Kept cleanly organized exclusively inside the <strong>Answer Pop-up</strong> tab (Tab 5), leaving the Preferences tab and extension toolbar popup distraction-free.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Release v1.3.0 -->
+        <div class="release-card">
+          <div class="release-card-header">
+            <div class="release-meta-left">
+              <span class="release-badge-pill prior">v1.3.0</span>
+              <h3 class="release-heading">🎯 2-Stage Verification Pipeline & 1-Click Update Hub</h3>
+              <span class="release-flourish">Verifica a Due Stadi & Aggiornamento Un Clic</span>
+            </div>
+            <span class="release-status-badge stable">Major Architecture</span>
+          </div>
+
+          <ul class="release-feature-list">
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🎯</span>
+              <div class="release-feature-content">
+                <strong>2-Stage Decoupled Pipeline (Solver ➔ Adversarial Crosschecker):</strong> Stage 1 (Key 1) performs a rigorous mathematical and logical derivation from first principles. Stage 2 (Key 2) acts as an adversarial auditor, reviewing the screenshot and Stage 1's work to catch test-maker traps, verify arithmetic, and formulate the verified final answer.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🔬</span>
+              <div class="release-feature-content">
+                <strong>3-Stage Unrestricted Deep Reasoning Engine:</strong> Lifted token restrictions (<code>max_tokens: 4096</code>) for complex university-level quantitative proofs, complete with a live in-page thought-token tracker.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🧠</span>
+              <div class="release-feature-content">
+                <strong>Domain-Specific Reasoning Approaches:</strong> Introduced the dedicated Reasoning Approaches matrix to customize heuristics globally or per domain (Aptitude & Logic, Probability & Statistics, DSA, Backend, AI for Finance, Verbal).
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🔔</span>
+              <div class="release-feature-content">
+                <strong>Automatic Release Notifications & Toolbar Badge:</strong> Periodic GitHub release detector alerts users with a terracotta <code>NEW</code> badge on the extension icon and an interactive acrylic popup banner.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">📦</span>
+              <div class="release-feature-content">
+                <strong>1-Click Update & Zero-Loss Portability:</strong> 1-Click Update exports an encrypted backup JSON file (<code>homework-solver-backup-YYYY-MM-DD.json</code>), copies settings to clipboard, and downloads the release zip. 1-Click Restore imports your JSON backup file with zero copy-pasting required.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Release v1.2.0 -->
+        <div class="release-card">
+          <div class="release-card-header">
+            <div class="release-meta-left">
+              <span class="release-badge-pill prior">v1.2.0</span>
+              <h3 class="release-heading">☑️ Multi-Choice (MSQ) Intelligence & Derivation Engine</h3>
+              <span class="release-flourish">Intelligenza Multi-Scelta & Risoluzione Passo-Passo</span>
+            </div>
+            <span class="release-status-badge stable">Accuracy Engine</span>
+          </div>
+
+          <ul class="release-feature-list">
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">☑️</span>
+              <div class="release-feature-content">
+                <strong>Square Checkbox (<code>☐</code>) vs Circular Radio (<code>○</code>) Vision Detection:</strong> The vision protocol visually differentiates multiple-correct choice questions from single-choice questions with standardized output contracts (<code>Correct Option(s): &lt;Options&gt;</code>).
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">⚡</span>
+              <div class="release-feature-content">
+                <strong>Comprehensive Multi-Target Auto-Select:</strong> The DOM auto-select engine scans and checks <em>all</em> matching options on quiz portals (Canvas, Moodle, Blackboard, Google Forms), checking state prior to click dispatch to avoid accidental unchecking.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🔍</span>
+              <div class="release-feature-content">
+                <strong>Always-Accessible "Explain Step-by-Step" Derivations:</strong> Solved layout clipping on long answers, added scrollable cards with discrete 4px scrollbars, and persisted cropped image data to <code>sessionStorage</code> for reliable derivations across SPA page navigation.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Release v1.1.0 -->
+        <div class="release-card">
+          <div class="release-card-header">
+            <div class="release-meta-left">
+              <span class="release-badge-pill prior">v1.1.0</span>
+              <h3 class="release-heading">🥷 Stealth Mode & High-Performance Rendering</h3>
+              <span class="release-flourish">Modalità Fantasma & Rendering Ultra-Fluido</span>
+            </div>
+            <span class="release-status-badge stable">Performance & Privacy</span>
+          </div>
+
+          <ul class="release-feature-list">
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🥷</span>
+              <div class="release-feature-content">
+                <strong>Pure Black & Transparent Stealth Mode:</strong> Ultra-low contrast, borderless watermark styling with 2px backdrop blur for maximum discretion during tests or screen shares.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">⚡</span>
+              <div class="release-feature-content">
+                <strong>60fps RAF Throttling:</strong> Synchronized UI streaming via <code>requestAnimationFrame</code>, completely eliminating micro-stutters during high-speed 300–800 tokens/sec Groq LPU output.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🎨</span>
+              <div class="release-feature-content">
+                <strong>Matte Italian Editorial Theme Engine:</strong> Warm roasted terracotta and acrylic sand palettes with strict WCAG AAA contrast and zero visual clutter.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Release v1.0.0 -->
+        <div class="release-card">
+          <div class="release-card-header">
+            <div class="release-meta-left">
+              <span class="release-badge-pill prior">v1.0.0</span>
+              <h3 class="release-heading">🚀 Genesis • Dedicated Groq LPU Vision Engine</h3>
+              <span class="release-flourish">Motore di Visione ad Altissima Velocità</span>
+            </div>
+            <span class="release-status-badge stable">Initial Release</span>
+          </div>
+
+          <ul class="release-feature-list">
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">⚡</span>
+              <div class="release-feature-content">
+                <strong>Pure Groq LPU Vision Inference:</strong> Ultra-fast multimodal reasoning powered by <code>qwen/qwen3.8-27b</code> on Groq LPUs.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🔑</span>
+              <div class="release-feature-content">
+                <strong>Multi-Key Round-Robin Failover:</strong> Seamless key rotation and healthy key memory with automated 60s cooldown memory on HTTP 429 rate limits.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">✂️</span>
+              <div class="release-feature-content">
+                <strong>Precision Screen Snipping:</strong> Smooth canvas crop with customizable reticle cursors and global <kbd>Alt</kbd>+<kbd>C</kbd> keyboard hotkey.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
     <!-- Tab 1: API & Models (2D Horizontal & Vertical Grid) -->
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <div id="tab-api" class="tab-pane active" role="tabpanel">
+    <div id="tab-api" class="tab-pane" role="tabpanel">
       <div class="grid-2col">
         
         <!-- Left Tile: Groq AI Keys & Rotation -->
@@ -1534,6 +2046,53 @@
         <!-- Left Column: Controls (Theme Palettes & Window Optics Sliders) -->
         <div class="grid-col-stack">
 
+          <!-- Discreet Floating Dot Mode Master Switch Card -->
+          <div class="card" id="answerDotModeCard" style="border: 1px solid rgba(100, 116, 139, 0.35); background: linear-gradient(135deg, rgba(100, 116, 139, 0.08), rgba(0, 0, 0, 0.02));">
+            <div class="card-header">
+              <div class="card-title">
+                <span>🔘 Discreet Floating Dot Mode</span>
+                <span class="card-subtitle-flourish">Modalità Punto Discreto</span>
+              </div>
+              <span class="badge-tag" id="dotModeAnswerBadge" style="background: rgba(100, 116, 139, 0.15); color: #334155; border-color: rgba(100, 116, 139, 0.3); font-size: 11px;">Click to Reveal</span>
+            </div>
+
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: -6px;">
+              When enabled, snipping an image will <strong>never</strong> automatically pop up the answer window. Instead, an ultra-discreet floating dot appears on your screen while solving in the background. Clicking the dot instantly expands the answer.
+            </p>
+
+            <label class="switch-row" for="dotModeToggle" style="margin-bottom: 0;">
+              <div class="switch-info">
+                <h4>Activate Floating Dot Mode</h4>
+                <p>Silently derives answers in the background and renders a small, draggable indicator dot. Click the dot anytime to reveal the answer pop-up.</p>
+              </div>
+              <span class="switch">
+                <input type="checkbox" id="dotModeToggle">
+                <span class="slider"></span>
+              </span>
+            </label>
+
+            <!-- Dot Size & Opacity Controls Grid -->
+            <div class="controls-grid" style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(100, 116, 139, 0.25);">
+              <div class="range-field">
+                <div class="range-header">
+                  <label for="dotSizeSlider">Dot Size (Diameter)</label>
+                  <span class="range-val-badge" id="dotSizeVal">11px</span>
+                </div>
+                <input type="range" id="dotSizeSlider" min="0" max="32" step="1" value="11">
+                <p class="field-hint">Can be decreased all the way to 0px (invisible click point).</p>
+              </div>
+
+              <div class="range-field">
+                <div class="range-header">
+                  <label for="dotOpacitySlider">Dot Resting Opacity</label>
+                  <span class="range-val-badge" id="dotOpacityVal">50%</span>
+                </div>
+                <input type="range" id="dotOpacitySlider" min="0" max="100" step="1" value="50">
+                <p class="field-hint">Can be decreased all the way to 0% (completely transparent ghost).</p>
+              </div>
+            </div>
+          </div>
+
           <!-- Stealth Mode Master Switch Card -->
           <div class="card" id="answerStealthCard" style="border: 1px solid rgba(139, 92, 246, 0.35); background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(0, 0, 0, 0.02));">
             <div class="card-header">
@@ -1912,6 +2471,9 @@
               <a id="viewGithubReleaseLink" class="btn btn-secondary" href="https://github.com/ypatil2006-coder/homework-extension/releases" target="_blank" style="padding: 10px 14px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center;">
                 <span>🐙 GitHub Releases ↗</span>
               </a>
+              <button id="backupStarRepoBtn" class="btn btn-secondary" type="button" style="padding: 10px 14px; font-size: 13px; display: inline-flex; align-items: center; border-color: rgba(245, 158, 11, 0.4); color: #b45309; background: rgba(245, 158, 11, 0.08);">
+                <span>⭐ Star Repository</span>
+              </button>
             </div>
             <div id="updateActionStatus" class="save-status"></div>
           </div>
@@ -1992,6 +2554,54 @@
       </div>
     </div>
 
+  <!-- Star Repository Consent Modal Dialog -->
+  <div id="starRepoModal" class="hs-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="starModalTitle">
+    <div class="hs-modal-dialog">
+      <div class="hs-modal-header">
+        <div class="hs-modal-title-box">
+          <span class="hs-modal-star-icon">⭐</span>
+          <div>
+            <h3 id="starModalTitle">Support Homework Solver on GitHub</h3>
+            <span class="hs-modal-flourish">Il Tuo Supporto Fa la Differenza</span>
+          </div>
+        </div>
+        <button id="closeStarModalBtn" class="hs-modal-close" type="button" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="hs-modal-body">
+        <p style="margin-bottom: 12px; font-size: 13.5px; line-height: 1.55; color: var(--text-secondary);">
+          Starring the repository helps more students, engineers, and test-takers discover Homework Solver. It helps support active open development and ensures that updates remain completely free.
+        </p>
+
+        <div class="hs-modal-feature-box">
+          <div class="hs-modal-feature-item">
+            <span class="hs-modal-check">✓</span>
+            <span>Opens <code>github.com/ypatil2006-coder/homework-extension</code> in your browser.</span>
+          </div>
+          <div class="hs-modal-feature-item">
+            <span class="hs-modal-check">✓</span>
+            <span>Automatically stars the repository if you haven't starred it yet.</span>
+          </div>
+          <div class="hs-modal-feature-item">
+            <span class="hs-modal-check">✓</span>
+            <span>If you have already starred it, your existing star is safely preserved.</span>
+          </div>
+        </div>
+
+        <p class="hs-modal-privacy-note">
+          🔒 <em>Zero tracking or token collection. We only trigger GitHub's native star button on the official repository.</em>
+        </p>
+      </div>
+
+      <div class="hs-modal-footer">
+        <button id="cancelStarModalBtn" type="button" class="btn btn-secondary" style="padding: 9px 18px;">
+          <span>Maybe Later</span>
+        </button>
+        <button id="confirmStarModalBtn" type="button" class="btn btn-primary" style="padding: 9px 20px; background: linear-gradient(135deg, #d97706, #b45309); border: none; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);">
+          <span>⭐ Yes, Open & Star Repo</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Sticky Bottom Save Bar -->
