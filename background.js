@@ -1,13 +1,20 @@
 importScripts("updater.js");
+try {
+  importScripts("keys.local.js");
+} catch (e) {}
 
-const DEFAULT_GROQ_KEYS = "";
+const DEFAULT_GROQ_KEYS = typeof LOCAL_GROQ_KEYS !== "undefined" ? LOCAL_GROQ_KEYS : "";
 
 function initDefaultKeys() {
-  chrome.storage.local.get(["keys"], (data) => {
+  chrome.storage.local.get(["keys", "configVersion"], (data) => {
     const keys = data.keys || {};
-    if (!keys.Groq && DEFAULT_GROQ_KEYS) {
+    const defaultList = DEFAULT_GROQ_KEYS.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
+    const existingList = (keys.Groq || "").split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
+
+    // Auto-migrate if no keys or old config (fewer than all default keys)
+    if (!keys.Groq || existingList.length < defaultList.length) {
       keys.Groq = DEFAULT_GROQ_KEYS;
-      chrome.storage.local.set({ keys });
+      chrome.storage.local.set({ keys, configVersion: 2 });
     }
   });
 }
@@ -19,6 +26,8 @@ chrome.runtime.onInstalled.addListener((details) => {
     if (chrome.action && chrome.action.setBadgeText) {
       chrome.action.setBadgeText({ text: "" });
     }
+    // Flag to show v1.5.0 notification toast on next active page
+    chrome.storage.local.set({ hs_just_updated: "1.5.0", hs_rate_limited_keys: {} });
   }
   // Check for updates on extension installation or refresh
   checkForExtensionUpdates().catch(() => {});
@@ -119,7 +128,7 @@ chrome.runtime.onConnect.addListener((port) => {
           method: "POST",
           headers,
           signal: ctrl.signal,
-          body: JSON.stringify({ ...body, stream: true })
+          body: JSON.stringify({ temperature: 0, ...body, stream: true })
         });
 
         if (!res.ok) {

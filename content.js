@@ -925,6 +925,7 @@ async function callAptitudeSequential3Stage(b64, { forceStyle, answerStyle, keys
         body: {
           model,
           messages,
+          temperature: 0,
           max_completion_tokens: maxTokens,
           max_tokens: maxTokens,
           reasoning_format: "raw"
@@ -1088,13 +1089,9 @@ Inside <think>...</think>, audit with unrestricted depth:
 
 CRITICAL: THE USER ONLY WANTS THE DIRECT FINAL ANSWER.
 Conclude inside </think>, then OUTSIDE <think> tags, respond strictly with:
-Why: <one crisp, complete sentence explaining why the selected answer is correct and avoids distractor traps>
-${answerStyle === "mcq" ? `Correct Option(s): <Option Letter(s)> — <full option text(s)> (e.g. "Option B — 45 km/h" or "Options A, C — ...")` :
-answerStyle === "short" ? `Final Answer: <the direct final answer>` :
-`Correct Option(s) / Final Answer: <the direct final answer or option(s)>
-
-Key Steps:
-<clean, concise 3-4 bullet point summary of the verified solution>`}`;
+${answerStyle === "mcq" ? `Why: <one crisp, complete sentence explaining why the selected answer is correct and avoids distractor traps>\nCorrect Option(s): <Option Letter(s)> — <full option text(s)> (e.g. "Option B — 45 km/h" or "Options A, C — ...")` :
+answerStyle === "short" ? `Why: <one short line explaining why this answer is correct>\nFinal Answer: <the direct final answer>` :
+`Output ONLY the pure, complete, optimal executable code without any comments, markdown formatting, explanations, or surrounding text.`}`;
 
   let stage3Stream = "";
   const s3DisplayIdx = ((keyInfo.activeIndex + stage3KeyIdx) % totalKeys) + 1;
@@ -1191,8 +1188,7 @@ Analyze the problem in the screenshot from absolute first principles:
 4. Output format:
 Inside <think>...</think>, show the concise derivation (under 120 words).
 Then OUTSIDE <think>, respond strictly with:
-Why: <one short line explaining the exact derivation>
-${answerStyle === "mcq" ? "Correct Option(s): <Option Letter(s)> — <full option text(s)>" : answerStyle === "short" ? "Final Answer: <the direct final answer>" : "Final Answer: <the direct final answer>\n\nDerivation:\n<step-by-step breakdown>"}`;
+${answerStyle === "mcq" ? "Why: <one short line explaining the exact derivation>\nCorrect Option(s): <Option Letter(s)> — <full option text(s)>" : answerStyle === "short" ? "Why: <one short line>\nFinal Answer: <the direct final answer>" : "Output ONLY the pure, complete, optimal executable code without any comments, explanations, markdown formatting, or surrounding text."}`;
 
   const AUDITOR_SYSTEM = `You are an Elite Academic Examiner & Adversarial Distractor Auditor.
 Analyze the problem in the screenshot to catch deceptive traps:
@@ -1202,14 +1198,13 @@ Analyze the problem in the screenshot to catch deceptive traps:
 4. Output format:
 Inside <think>...</think>, audit traps and verify options concisely (under 120 words).
 Then OUTSIDE <think>, respond strictly with:
-Why: <one short line explaining why this option avoids traps and is correct>
-${answerStyle === "mcq" ? "Correct Option(s): <Option Letter(s)> — <full option text(s)>" : answerStyle === "short" ? "Final Answer: <the direct final answer>" : "Final Answer: <the direct final answer>\n\nTrap Audit & Verification:\n<step-by-step audit>"}`;
+${answerStyle === "mcq" ? "Why: <one short line explaining why this option avoids traps and is correct>\nCorrect Option(s): <Option Letter(s)> — <full option text(s)>" : answerStyle === "short" ? "Why: <one short line>\nFinal Answer: <the direct final answer>" : "Output ONLY the pure, complete, optimal executable code without any comments, explanations, markdown formatting, or surrounding text."}`;
 
   const userPrompt = answerStyle === "mcq" ?
     "Solve the question in this screenshot accurately. Check for square checkboxes (multi-select) vs radio buttons. Output Why and Correct Option(s)." :
     answerStyle === "short" ?
     "Solve the question in this screenshot accurately from first principles. Output Why and Final Answer." :
-    "Solve the question in this screenshot accurately. Provide complete derivation and final answer.";
+    "Solve the coding question in this screenshot accurately. Output ONLY the pure, complete executable code with zero comments, zero markdown ticks, and zero explanations.";
 
   let streamText1 = "";
   let streamText2 = "";
@@ -1253,6 +1248,7 @@ ${answerStyle === "mcq" ? "Correct Option(s): <Option Letter(s)> — <full optio
           { type: "text", text: userPrompt }
         ]}
       ],
+      temperature: 0,
       max_completion_tokens: maxTokens,
       max_tokens: maxTokens,
       reasoning_format: "raw"
@@ -1278,6 +1274,7 @@ ${answerStyle === "mcq" ? "Correct Option(s): <Option Letter(s)> — <full optio
           { type: "text", text: userPrompt }
         ]}
       ],
+      temperature: 0,
       max_completion_tokens: maxTokens,
       max_tokens: maxTokens,
       reasoning_format: "raw"
@@ -1402,7 +1399,7 @@ Derived Solution:
 <step-by-step derivation and calculations>
 
 Preliminary Answer:
-${answerStyle === "mcq" ? "Option(s): <Option Letter(s)> — <full option text(s)>" : "Final Answer: <the calculated result>"}`;
+${answerStyle === "mcq" ? "Option(s): <Option Letter(s)> — <full option text(s)>" : answerStyle === "short" ? "Final Answer: <the calculated result>" : "Output ONLY the pure, complete executable code without any comments, markdown formatting, or surrounding text."}`;
 
   let stage1Stream = "";
   const onChunkStage1 = (chunk) => {
@@ -1433,6 +1430,7 @@ ${answerStyle === "mcq" ? "Option(s): <Option Letter(s)> — <full option text(s
           { type: "text", text: "Solve this question directly from first principles. Show the step-by-step derivation and state the preliminary answer clearly." }
         ]}
       ],
+      temperature: 0,
       max_completion_tokens: 3500,
       max_tokens: 3500,
       reasoning_format: "raw"
@@ -1462,6 +1460,7 @@ ${answerStyle === "mcq" ? "Option(s): <Option Letter(s)> — <full option text(s
               { type: "text", text: "Solve this question directly from first principles. Show the step-by-step derivation and state the preliminary answer clearly." }
             ]}
           ],
+          temperature: 0,
           max_completion_tokens: 3500,
           max_tokens: 3500,
           reasoning_format: "raw"
@@ -1503,10 +1502,9 @@ Inside <think>...</think>, audit the solution with rigorous depth:
 
 OUTPUT FORMAT:
 Conclude inside </think>, then OUTSIDE <think>, respond strictly with:
-Why: <one crisp, definitive sentence explaining why this verified answer is correct and avoids traps>
-${answerStyle === "mcq" ? `Correct Option(s): <Option Letter(s)> — <full option text(s)> (e.g. "Option B — 45 km/h" or "Options A, C — ...")` :
-  answerStyle === "short" ? `Final Answer: <the direct final answer>` :
-  `Final Answer: <the direct final answer>\n\nVerified Steps:\n<clean breakdown>`}`;
+${answerStyle === "mcq" ? `Why: <one crisp, definitive sentence explaining why this verified answer is correct and avoids traps>\nCorrect Option(s): <Option Letter(s)> — <full option text(s)> (e.g. "Option B — 45 km/h" or "Options A, C — ...")` :
+  answerStyle === "short" ? `Why: <one crisp sentence>\nFinal Answer: <the direct final answer>` :
+  `Output ONLY the pure, verified, executable code with zero explanations, zero comments, and zero surrounding text.`}`;
 
   let stage2Stream = "";
   const onChunkStage2 = (chunk) => {
@@ -1538,6 +1536,7 @@ ${answerStyle === "mcq" ? `Correct Option(s): <Option Letter(s)> — <full optio
           { type: "text", text: `Here is the preliminary solution and answer derived by Solver in Stage 1:\n\n${stage1Text}\n\nCrosscheck this solution against the screenshot. Re-calculate every step independently, audit for test-maker traps, verify all options, and output the final verified answer.` }
         ]}
       ],
+      temperature: 0,
       max_completion_tokens: 3500,
       max_tokens: 3500,
       reasoning_format: "raw"
@@ -1567,6 +1566,7 @@ ${answerStyle === "mcq" ? `Correct Option(s): <Option Letter(s)> — <full optio
               { type: "text", text: `Here is the preliminary solution and answer derived by Solver in Stage 1:\n\n${stage1Text}\n\nCrosscheck this solution against the screenshot. Re-calculate every step independently, audit for test-maker traps, verify all options, and output the final verified answer.` }
             ]}
           ],
+          temperature: 0,
           max_completion_tokens: 3500,
           max_tokens: 3500,
           reasoning_format: "raw"
@@ -1744,13 +1744,23 @@ CRITICAL CONSTRAINT: Keep internal reasoning CONCISE (under 120 words). Do NOT r
 `;
 
   const systemPrompts = {
-    detailed: `${domainIntro}\n${reasoningProtocol}\nCODING INSTRUCTION: If this is a coding question or asks for a program, function, method, query, or algorithm, output ONLY the pure functional code in the language specified or implied outside <think> tags. Absolutely NO explanations, NO markdown intro/outro, NO plan, and NO comments inside or outside the code. For non-coding questions, provide a clear, direct, structured step-by-step breakdown outside <think> tags.`,
+    detailed: `${domainIntro}\n${reasoningProtocol}\nCRITICAL CODE-ONLY INSTRUCTION:
+You are in Pure Code Mode.
+If the screenshot contains ANY coding question, algorithm, function, method, class, SQL query, script, or program:
+Output ONLY the 100% complete, working, optimal code in the requested or implied language (Python, C++, Java, JS, etc.).
+STRICT NEGATIVE CONSTRAINTS:
+- ZERO English explanations before or after.
+- ZERO markdown code block ticks (do NOT wrap in \`\`\` or \`\`\`python).
+- ZERO comments inside or outside the code.
+- ZERO test cases, usage examples, or time complexity analysis.
+- Output ONLY the pure, directly runnable source code!
+For non-coding questions: output ONLY the direct final code or numerical answer with zero conversational filler.`,
     short: `${domainIntro}\n${reasoningProtocol}\nCODING INSTRUCTION: If this is a coding question, output ONLY the pure code outside <think> tags with zero comments and zero explanations. Otherwise, outside <think> tags, respond with EXACTLY two lines and nothing else:\nWhy: <one short line explaining why this answer is correct>\nFinal Answer: <the direct final answer>`,
     mcq: `${domainIntro}\n${reasoningProtocol}\nMCQ INSTRUCTION: Execute Step 1 and Step 2 inside <think> tags. Check if options are square checkboxes (multi-select / select all that apply) or circular radio buttons (single choice). Then, OUTSIDE <think> tags, respond with EXACTLY two lines and nothing else:\nWhy: <one short line summarizing why the selected option(s) are correct>\nCorrect Option(s): <Option Letter(s)> — <full option text(s)> (For multi-select, list all correct options, e.g. "Options B, C — [Option B text] | [Option C text]")`
   };
 
   const userPrompts = {
-    detailed: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. If this is a coding problem, output ONLY the complete code outside <think> with NO comments, NO explanations, and NO surrounding text. Otherwise output the clean step-by-step solution.",
+    detailed: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, output ONLY the complete executable code with NO comments, NO markdown ticks, and NO explanations. Pure code only.",
     short: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. If this is a coding problem, output ONLY the code without comments or text. Otherwise outside <think>, output exactly two lines: Why: <explanation> and Final Answer: <the answer>.",
     mcq: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Check if the options have square checkboxes (multi-select / select all that apply) or circular radio buttons (single choice). Outside <think>, output exactly two lines: Why: <explanation> and Correct Option(s): <Letter(s)> — <full text>."
   };
@@ -1802,6 +1812,7 @@ CRITICAL CONSTRAINT: Keep internal reasoning CONCISE (under 120 words). Do NOT r
               { type: "text", text: userPrompts[answerStyle] }
             ]}
           ],
+          temperature: 0,
           max_completion_tokens: maxTokensMap[answerStyle] || 750,
           max_tokens: maxTokensMap[answerStyle] || 750,
           reasoning_format: "raw"
@@ -2019,24 +2030,63 @@ function stripThinkTags(text) {
 }
 
 // Pull the required lines (Why / Correct Option / Final Answer) out of a model
-// response, tolerating small wording variations and markdown formatting.
+// response, tolerating wording variations, hanging headers, and markdown formatting.
 function parseAnswer(text) {
   const parts = { why: "", correct: "", final: "", extra: [] };
-  const lines = String(text || "").split("\n");
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) continue;
-    const unbold = line.replace(/^\*\*|\*\*$/g, "").trim();
-    if (/^(?:\*{0,2})why\s*:/i.test(unbold)) {
-      parts.why = unbold.replace(/^(?:\*{0,2})why\s*:\s*(?:\*\*)?/i, "").trim();
-    } else if (/^(?:\*{0,2})(?:the\s+)?(?:correct\s+)?(?:options?|answers?)\s*(?:\([sS]\))?\s*(?::|is)\s*/i.test(unbold)) {
-      parts.correct = unbold.replace(/^(?:\*{0,2})(?:the\s+)?(?:correct\s+)?(?:options?|answers?)\s*(?:\([sS]\))?\s*(?::|is)\s*(?:\*\*)?/i, "").trim();
-    } else if (/^(?:\*{0,2})final\s+answer\s*(?::|is)\s*/i.test(unbold)) {
-      parts.final = unbold.replace(/^(?:\*{0,2})final\s+answer\s*(?::|is)\s*(?:\*\*)?/i, "").trim();
+  const rawLines = String(text || "").split("\n");
+
+  let currentSection = null;
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const raw = rawLines[i].trim();
+    if (!raw) continue;
+
+    // Flexible regex matching:
+    // 1. Why / Explanation / Reasoning
+    const whyMatch = raw.match(/^(?:[#*\-\d.]+\s*)?(?:\*{0,2})(?:why|explanation|reasoning|rationale|justification)\s*(?:\*{0,2})\s*[:\-—]\s*(.*)$/i);
+    // 2. Correct Option / Choice / Correct Answer
+    const correctMatch = raw.match(/^(?:[#*\-\d.]+\s*)?(?:\*{0,2})(?:the\s+)?(?:correct\s+)?(?:options?|answers?|choice|correct)\s*(?:\([sS]\))?\s*(?:\*{0,2})\s*(?::|is|\—|\-)\s*(.*)$/i);
+    // 3. Final Answer / Result
+    const finalMatch = raw.match(/^(?:[#*\-\d.]+\s*)?(?:\*{0,2})(?:final\s+answer|final\s+result|result)\s*(?:\*{0,2})\s*(?::|is|\—|\-)\s*(.*)$/i);
+
+    if (whyMatch) {
+      currentSection = "why";
+      const val = whyMatch[1].replace(/^\*\*|\*\*$/g, "").trim();
+      if (val) parts.why = parts.why ? `${parts.why} ${val}` : val;
+    } else if (correctMatch) {
+      currentSection = "correct";
+      const val = correctMatch[1].replace(/^\*\*|\*\*$/g, "").trim();
+      if (val) parts.correct = parts.correct ? `${parts.correct} ${val}` : val;
+    } else if (finalMatch) {
+      currentSection = "final";
+      const val = finalMatch[1].replace(/^\*\*|\*\*$/g, "").trim();
+      if (val) parts.final = parts.final ? `${parts.final} ${val}` : val;
     } else {
-      parts.extra.push(line);
+      // Continuation lines for hanging headers or multi-line values
+      const unbold = raw.replace(/^[\s#*>\-\d.]+\s*/, "").replace(/^\*\*|\*\*$/g, "").trim();
+      if (currentSection === "why" && !parts.why) {
+        parts.why = unbold;
+      } else if (currentSection === "why" && parts.why && !raw.startsWith("#")) {
+        parts.why += " " + unbold;
+      } else if (currentSection === "correct" && !parts.correct) {
+        parts.correct = unbold;
+      } else if (currentSection === "final" && !parts.final) {
+        parts.final = unbold;
+      } else {
+        currentSection = null;
+        parts.extra.push(raw);
+      }
     }
   }
+
+  // Fallback: If correct option is missing from parsed lines, scan text for explicit option markers
+  if (!parts.correct) {
+    const optMatch = text.match(/(?:(?:option|choice|answer)\s+([A-D1-4])\b|^([A-D])[\.\)]\s+)/im);
+    if (optMatch) {
+      parts.correct = (optMatch[1] || optMatch[2] || "").toUpperCase();
+    }
+  }
+
   return parts;
 }
 
@@ -2224,7 +2274,32 @@ function fallbackCopyText(text) {
   }
 }
 
-function getCleanAnswerOnly(rawText, parts) {
+function extractPureCode(text) {
+  if (!text) return "";
+  let clean = stripThinkTags(text).trim();
+
+  // If wrapped in markdown code fence (```lang ... ```), extract the inner content
+  const codeBlockMatch = clean.match(/```(?:[a-zA-Z0-9_\-\+]*\s*\n)?([\s\S]*?)```/);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    clean = codeBlockMatch[1];
+  }
+
+  // Remove any remaining stray leading/trailing fences
+  clean = clean.replace(/^```[a-zA-Z0-9_\-\+]*\n?/, "").replace(/\n?```$/, "");
+
+  // Strip conversational intros if the model started with "Here is the code:"
+  clean = clean.replace(/^(?:Here\s+(?:is|are)\s+(?:the\s+)?(?:complete\s+|pure\s+)?code\b[^\n]*\n*|Solution\s*:|Code\s*:)\s*/i, "");
+
+  // Strip conversational outro if present (e.g. "Hope this helps!", "Complexity: O(N)")
+  clean = clean.replace(/\n+(?:Complexity|Time Complexity|Space Complexity|Explanation|Notes?):[\s\S]*$/i, "");
+
+  return clean.trim();
+}
+
+function getCleanAnswerOnly(rawText, parts, answerStyle) {
+  if (answerStyle === "detailed") {
+    return extractPureCode(rawText);
+  }
   let target = "";
   if (parts) {
     if (parts.correct) {
@@ -2300,6 +2375,13 @@ function updateStreamingOverlay(partialText, style) {
       } else {
         liveBody = "Reading question & solving…";
       }
+    }
+  } else if (style === "detailed") {
+    if (cleanPartial) {
+      const pureCode = extractPureCode(cleanPartial);
+      liveBody = `<pre style="margin: 0; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12px; line-height: 1.45; white-space: pre-wrap; word-break: break-all;">${escapeHtml(pureCode || cleanPartial)}</pre>`;
+    } else {
+      liveBody = "⚡ Writing optimized code…";
     }
   } else {
     if (cleanPartial) {
@@ -2924,7 +3006,24 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
 
   let formattedHtml = "";
 
-  if (currentAnswerStealthMode) {
+  if (answerStyle === "detailed") {
+    // ── Pure Code Mode Layout ──
+    const pureCode = extractPureCode(cleanAnswer);
+    if (currentAnswerStealthMode) {
+      formattedHtml = `
+        <div style="font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace; font-size: ${currentAnswerFontSize}px; line-height: 1.45; white-space: pre-wrap; word-break: break-all; color: ${inp.cardValue}; tab-size: 4;">
+          ${escapeHtml(pureCode || cleanAnswer || "No code received.")}
+        </div>
+      `;
+    } else {
+      formattedHtml = `
+        <div class="hs-card" style="background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 9px;">
+          <span class="hs-card-label" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${inp.cardLabel}; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">💻 Pure Code Solution</span>
+          <pre style="margin: 0; font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace; font-size: ${currentAnswerFontSize}px; line-height: 1.45; white-space: pre-wrap; word-break: break-all; color: ${inp.cardValue}; tab-size: 4;">${escapeHtml(pureCode || cleanAnswer || "No code received.")}</pre>
+        </div>
+      `;
+    }
+  } else if (currentAnswerStealthMode) {
     // ── Ultra-discreet stealth layout ──
     if (parts.why) {
       formattedHtml += `
@@ -3040,7 +3139,7 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
             background: transparent; color: ${inp.cardLabel || inp.overlayTextPrimary || '#111111'};
             border: 1px dashed ${colorWithAlpha(inp.cardLabel || inp.overlayTextMuted, 0.45)}; border-radius: 4px; padding: 2px 6px; font-size: 11px;
             cursor: pointer; opacity: 0.85; font-family: inherit;
-          ">[+ explain step-by-step]</button>
+          ">[💻 Code Solution]</button>
         </div>
       `;
     } else {
@@ -3060,7 +3159,7 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
             transition: all 0.12s ease;
           ">
-            <span>🔍</span> Explain Step-by-Step
+            <span>💻</span> Code Solution
           </button>
         </div>
       `;
@@ -3119,7 +3218,10 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   applyOverlayPosition(box);
   makeDraggable(box);
 
-  document.getElementById("hs-close").onclick = removeExistingOverlay;
+  const closeBtn = document.getElementById("hs-close");
+  if (closeBtn) {
+    closeBtn.onclick = removeExistingOverlay;
+  }
 
   const expandBtn = document.getElementById("hs-expand-step");
   if (expandBtn) {
@@ -3140,12 +3242,14 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     expandBtn.onclick = () => {
       const cropToUse = lastCroppedBase64 || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hs_last_crop") : null);
       if (!cropToUse) return;
-      showLoadingOverlay("Generating step-by-step derivation...");
+      showLoadingOverlay("Generating pure code solution...");
       callAPI(cropToUse, { forceStyle: "detailed" });
     };
   }
 
-  const onlyAnswerText = getCleanAnswerOnly(cleanAnswer, parts);
+  const onlyAnswerText = (answerStyle === "detailed")
+    ? extractPureCode(cleanAnswer)
+    : getCleanAnswerOnly(cleanAnswer, parts, answerStyle);
 
   // Auto-copy the clean answer text immediately if enabled
   if (currentAnswerAutoCopy && onlyAnswerText) {
@@ -3167,24 +3271,29 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   }
 
   // Manual copy button click
-  document.getElementById("hs-copy").onclick = () => {
-    const toCopy = getCleanAnswerOnly(cleanAnswer, parts) || cleanAnswer;
-    copyToClipboard(toCopy).then((ok) => {
-      const copyBtn = document.getElementById("hs-copy");
-      if (copyBtn && ok) {
-        copyBtn.textContent = "✓";
-        copyBtn.style.color = inp.copySuccess;
-        copyBtn.style.opacity = "1";
-        setTimeout(() => {
-          if (copyBtn) {
-            copyBtn.textContent = "⎘";
-            copyBtn.style.color = inp.overlayTextMuted;
-            copyBtn.style.opacity = currentAnswerStealthMode ? "0.4" : "0.75";
-          }
-        }, 1500);
-      }
-    });
-  };
+  const manualCopyBtn = document.getElementById("hs-copy");
+  if (manualCopyBtn) {
+    manualCopyBtn.onclick = () => {
+      const toCopy = (answerStyle === "detailed")
+        ? extractPureCode(cleanAnswer)
+        : (getCleanAnswerOnly(cleanAnswer, parts, answerStyle) || cleanAnswer);
+      copyToClipboard(toCopy).then((ok) => {
+        const copyBtn = document.getElementById("hs-copy");
+        if (copyBtn && ok) {
+          copyBtn.textContent = "✓";
+          copyBtn.style.color = inp.copySuccess;
+          copyBtn.style.opacity = "1";
+          setTimeout(() => {
+            if (copyBtn) {
+              copyBtn.textContent = "⎘";
+              copyBtn.style.color = inp.overlayTextMuted;
+              copyBtn.style.opacity = currentAnswerStealthMode ? "0.4" : "0.75";
+            }
+          }, 1500);
+        }
+      });
+    };
+  }
 }
 
 function escapeHtml(str) {
@@ -3388,7 +3497,11 @@ function showGitHubNotificationToast({ title, message, status }) {
   `;
 
   const isSuccess = status === "success" || status === "already_starred";
-  const iconEmoji = isSuccess ? "⭐" : "🔔";
+  const isUpdate = status === "update";
+  const iconEmoji = isUpdate ? "⚡" : (isSuccess ? "⭐" : "🔔");
+  const borderColor = isUpdate ? "rgba(56, 189, 248, 0.45)" : "rgba(245, 158, 11, 0.45)";
+  const titleColor = isUpdate ? "#38bdf8" : "#fbbf24";
+  const shadowGlow = isUpdate ? "rgba(56, 189, 248, 0.15)" : "rgba(245, 158, 11, 0.15)";
 
   toast.innerHTML = `
     <style>
@@ -3399,7 +3512,7 @@ function showGitHubNotificationToast({ title, message, status }) {
     </style>
     <div style="font-size: 22px; line-height: 1; flex-shrink: 0; margin-top: 2px;">${iconEmoji}</div>
     <div style="flex: 1; min-width: 0;">
-      <div style="font-weight: 700; font-size: 13.5px; color: #fbbf24; margin-bottom: 3px;">${escapeHtml(title)}</div>
+      <div style="font-weight: 700; font-size: 13.5px; color: ${titleColor}; margin-bottom: 3px;">${escapeHtml(title)}</div>
       <div style="font-size: 12px; line-height: 1.45; color: #cbd5e1;">${escapeHtml(message)}</div>
     </div>
     <button type="button" style="background: transparent; border: none; color: #94a3b8; font-size: 15px; cursor: pointer; padding: 0 0 0 6px; line-height: 1;">✕</button>
@@ -3426,10 +3539,49 @@ function showGitHubNotificationToast({ title, message, status }) {
   }, 6000);
 }
 
-// Auto-run GitHub star detection
+// Auto-run GitHub star detection & update notification
+function checkUpdateAndConfigNotifications() {
+  if (typeof chrome === "undefined" || !chrome.storage?.local) return;
+  try {
+    chrome.storage.local.get(["hs_just_updated", "hs_update_available", "hs_dismissed_update"], (data) => {
+      // 1. Post-update notification
+      if (data.hs_just_updated) {
+        const ver = data.hs_just_updated;
+        chrome.storage.local.remove(["hs_just_updated"]);
+        setTimeout(() => {
+          showGitHubNotificationToast({
+            title: `⚡ Homework Solver v${ver} Active`,
+            message: "Temperature set to 0 for 100% deterministic solutions. 'Detailed' mode upgraded to 💻 Code Only mode!",
+            status: "update"
+          });
+        }, 800);
+      }
+      // 2. Pre-update notification for old configs
+      else if (data.hs_update_available && data.hs_update_available.version !== data.hs_dismissed_update) {
+        const up = data.hs_update_available;
+        const sessionKey = "hs_notified_" + up.version;
+        if (!sessionStorage.getItem(sessionKey)) {
+          sessionStorage.setItem(sessionKey, "1");
+          setTimeout(() => {
+            showGitHubNotificationToast({
+              title: `📦 Update v${up.version} Available`,
+              message: "A new version of Homework Solver is available with deterministic Temperature 0 & Code Only mode. Open extension icon to update.",
+              status: "update"
+            });
+          }, 1500);
+        }
+      }
+    });
+  } catch (e) {}
+}
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initGitHubAutoStarFlow);
+  document.addEventListener("DOMContentLoaded", () => {
+    initGitHubAutoStarFlow();
+    checkUpdateAndConfigNotifications();
+  });
 } else {
   initGitHubAutoStarFlow();
+  checkUpdateAndConfigNotifications();
 }
 

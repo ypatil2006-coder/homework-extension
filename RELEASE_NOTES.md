@@ -1,3 +1,29 @@
+### 🚀 Homework Solver v1.5.0 — Deterministic Greedy Decoding (Temperature 0) & Code Only Engine
+
+A high-speed, unobtrusive screen-snipping browser assistant for students, developers, and test-takers powered by Groq LPU vision inference (`qwen/qwen3.8-27b`).
+
+---
+
+### ⚡ Highlights & What's New in v1.5.0
+
+- **🎯 Deterministic Greedy Decoding (`temperature: 0`)**:
+  - Enforced `temperature: 0` across all API payloads (Single-Pass, 2-Stage Pipeline, 3-Stage Unrestricted, Parallel Dual-Key, and test ping endpoints).
+  - Eliminates stochastic token sampling and hallucinated deviations, providing 100% deterministic, reproducible derivations for complex quantitative aptitude, math, and code.
+
+- **💻 New "Code Only" Mode (Replacing Detailed Mode)**:
+  - Transformed "Detailed" mode into a streamlined **Code Only** mode for coding, DSA, and technical assessments.
+  - Automatically isolates and extracts pure code from AI output, rendering it in a high-contrast dark monospace card with zero prose fluff or conversational clutter.
+  - Quick-copy button copies pure raw code straight to clipboard.
+
+- **⚡ 7-Key Round-Robin Multi-Key Pool**:
+  - Automatically rotates across 7 pre-configured Groq API keys with instantaneous 429 rate-limit failover for high-throughput testing sessions.
+
+- **📢 Notice & Auto-Migration for Users of Old Config**:
+  - All users running older versions (v1.4.0 and earlier) will see a **`NEW`** terracotta badge on the toolbar icon and an update notification banner in the extension popup.
+  - Older stored configs automatically upgrade to the new 7-key pool with legacy rate-limit locks cleared.
+
+---
+
 ### 🚀 Homework Solver v1.4.0 — Ultra-Discreet Floating Dot Mode & What's New Hub
 
 A high-speed, unobtrusive screen-snipping browser assistant for students, developers, and test-takers powered by Groq LPU vision inference (`qwen/qwen3.8-27b`).
@@ -59,7 +85,7 @@ A high-speed, unobtrusive screen-snipping browser assistant for students, develo
 
 ### 📦 How to Install / Update Unpacked
 
-1. Download `homework-solver-v1.4.0.zip` below and extract it.
+1. Download `homework-solver-v1.5.0.zip` below and extract it.
 2. Open Google Chrome and navigate to `chrome://extensions/`.
 3. Enable **Developer mode** using the toggle in the top-right corner.
 4. Click **Load unpacked** (or click the 🔁 **Reload** button on the existing extension).

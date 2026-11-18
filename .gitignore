@@ -6,6 +6,7 @@ Thumbs.db
 *.log
 .env
 .env.local
+keys.local.js
 
 # Diagnostic & test scripts
 test_keys.*

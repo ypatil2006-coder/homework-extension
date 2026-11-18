@@ -1223,7 +1223,7 @@ if (testKeysBtn) {
             const infRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
               method: "POST",
               headers: { "Authorization": `Bearer ${k}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ model: "qwen/qwen3.8-27b", messages: [{ role: "user", content: "ping" }], max_tokens: 1 })
+              body: JSON.stringify({ model: "qwen/qwen3.8-27b", messages: [{ role: "user", content: "ping" }], temperature: 0, max_tokens: 1 })
             });
             if (infRes.ok) {
               results.push(`<div style="color: #267344; margin-bottom: 4px;">✅ <b>Key #${i+1} (${shortKey})</b>: Active & verified Qwen 3.8 inference!</div>`);

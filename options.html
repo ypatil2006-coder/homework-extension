@@ -1257,7 +1257,7 @@
           <span>⚡ Groq Dedicated</span>
         </div>
         <div id="headerVersionBadge" class="provider-pill" style="cursor: pointer;" title="View Updates & Version">
-          <span id="headerVersionText">v1.4.0</span>
+          <span id="headerVersionText">v1.5.0</span>
         </div>
       </div>
     </div>
@@ -1327,15 +1327,54 @@
           </div>
         </div>
 
-        <!-- Release v1.4.0 (Latest Architecture) -->
+        <!-- Release v1.5.0 (Latest Architecture) -->
         <div class="release-card latest-card">
           <div class="release-card-header">
             <div class="release-meta-left">
-              <span class="release-badge-pill">v1.4.0</span>
+              <span class="release-badge-pill">v1.5.0</span>
+              <h3 class="release-heading">🎯 Deterministic Greedy Decoding & 💻 Code Only Engine</h3>
+              <span class="release-flourish">Decodifica Deterministica & Modalità Puro Codice</span>
+            </div>
+            <span class="release-status-badge current">Latest Release • Active</span>
+          </div>
+
+          <ul class="release-feature-list">
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🎯</span>
+              <div class="release-feature-content">
+                <strong>Deterministic Temperature = 0 Locked Across All Engines:</strong> Completely eliminated model hallucination, stochastic variance, and re-rolls. All Groq completion payloads (Single-Pass, 2-Stage Pipeline, 3-Stage Unrestricted, and Parallel Dual-Key) now enforce <code>temperature: 0</code> for greedy decoding, yielding 100% reproducible math derivations and syntax-accurate code solutions.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">💻</span>
+              <div class="release-feature-content">
+                <strong>New "Code Only" Mode (Replacing Detailed Mode):</strong> Replaced verbose paragraph explanations with high-density code output. When selected, the AI provides only production-ready code in a sleek dark monospace card with zero conversational clutter. One-click copy copies the raw unadorned code directly to your clipboard.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">⚡</span>
+              <div class="release-feature-content">
+                <strong>Active 7-Key Round-Robin Rotation Pool:</strong> Automatically distributes inference requests across 7 pre-configured Groq API keys with instantaneous rate-limit detection (HTTP 429) and transparent failover.
+              </div>
+            </li>
+            <li class="release-feature-row">
+              <span class="release-bullet-icon">🔄</span>
+              <div class="release-feature-content">
+                <strong>Legacy Config Auto-Migration & Notice:</strong> Users upgrading from older configurations (v1.4.0 and earlier) are automatically migrated: legacy single-key entries are expanded to the full 7-key rotation pool, rate-limit counters are reset, and in-app notifications alert users of the deterministic upgrade.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Release v1.4.0 -->
+        <div class="release-card">
+          <div class="release-card-header">
+            <div class="release-meta-left">
+              <span class="release-badge-pill prior">v1.4.0</span>
               <h3 class="release-heading">🔘 Ultra-Discreet Floating Dot Mode & Precision Sliders</h3>
               <span class="release-flourish">Modalità Invisibile & Cursori Precisi</span>
             </div>
-            <span class="release-status-badge current">Latest Release • Active</span>
+            <span class="release-status-badge stable">Prior Release</span>
           </div>
 
           <ul class="release-feature-list">
@@ -1661,11 +1700,11 @@
             <div class="field">
               <label for="styleSelect">Default Answer Style</label>
               <select id="styleSelect">
-                <option value="detailed">📝 Detailed Step-by-Step Breakdown</option>
+                <option value="detailed">💻 Code Only (Pure Code, No Explanations)</option>
                 <option value="short">⚡ Short (Why + Final Answer)</option>
                 <option value="mcq">🔘 MCQ — Correct Option Only</option>
               </select>
-              <p class="field-hint">Choose between comprehensive first-principles proofs, rapid concise takeaways, or instant option letters.</p>
+              <p class="field-hint">Choose between pure runnable code for coding tests, rapid concise takeaways, or instant option letters.</p>
             </div>
           </div>
         </div>
