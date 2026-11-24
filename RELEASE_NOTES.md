@@ -1,4 +1,4 @@
-### 🚀 Homework Solver v1.6.2 — Stealth Mode Selection & Dot Color Precision
+### 🚀 Homework Solver v1.6.2 — Final Stable Release
 
 A high-speed, unobtrusive screen-snipping browser assistant for students, developers, and test-takers powered by Groq LPU vision inference (`qwen/qwen3.8-27b`).
 
