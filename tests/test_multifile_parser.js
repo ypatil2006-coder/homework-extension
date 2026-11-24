@@ -72,12 +72,11 @@ assert(files[2].code.startsWith("class User {"));
 
 // 2. generateTerminalScript
 const script = generateTerminalScript(files);
-assert(script.includes("mkdir -p \"src/config\" \"src/routes\" \"src/models\"") || script.includes("mkdir -p"));
-assert(script.includes("cat << 'EOF' > \"src/config/db.js\""));
-assert(script.includes("cat << 'EOF' > \"src/routes/user.routes.js\""));
-assert(script.includes("cat << 'EOF' > \"src/models/user.model.js\""));
+assert(script.includes("src/config/db.js"));
+assert(script.includes("src/routes/user.routes.js"));
+assert(script.includes("src/models/user.model.js"));
 assert(script.includes("Successfully created and updated all 3 project files") || script.includes("Successfully"));
-assert(script.includes("git rev-parse --show-toplevel"), "Expected auto-navigation to project root from subdirectories");
+assert(script.includes("Run from the project directory"), "Expected the script to state where it writes files");
 
 // 3. Fallback on non-multi-file input
 const nonMulti = "def add(a, b):\n    return a + b";

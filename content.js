@@ -25,7 +25,8 @@ let isSnipping = false;
 let startX, startY, selectionBox;
 let screenshotDataUrl = null;
 let capturePromise = null;
-let lastCroppedBase64 = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem("hs_last_crop") : null;
+let lastCroppedBase64 = null;
+try { lastCroppedBase64 = sessionStorage.getItem("hs_last_crop"); } catch (e) {}
 let savedOverlayPos = null;
 let savedDotPos = null;
 let currentDotMode = false;
@@ -806,18 +807,11 @@ async function getRotatedGroqKeys(keysData) {
   if (!parsed.length) return { keys: [], activeIndex: 0, total: 0 };
   if (parsed.length === 1) return { keys: parsed, activeIndex: 0, total: 1 };
 
-  let storedIndices = {};
-  try {
-    const res = await chrome.storage.local.get(["providerKeyIndices"]);
-    storedIndices = res.providerKeyIndices || {};
-  } catch (e) {}
-
-  const currentIndex = (storedIndices.Groq || 0) % parsed.length;
-  // Advance index for the next request so traffic is evenly distributed
-  storedIndices.Groq = (currentIndex + 1) % parsed.length;
-  try {
-    await chrome.storage.local.set({ providerKeyIndices: storedIndices });
-  } catch (e) {}
+  const reservation = await chrome.runtime.sendMessage({ action: "reserveGroqKeyIndex", total: parsed.length });
+  if (!reservation || typeof reservation.index !== "number") {
+    throw new Error(reservation?.error || "Could not reserve a Groq API key");
+  }
+  const currentIndex = reservation.index;
 
   // Rotate list so currentIndex is primary, followed by remaining keys
   const rotated = [...parsed.slice(currentIndex), ...parsed.slice(0, currentIndex)];
@@ -959,7 +953,7 @@ function getSubjectPersona(sub, options = {}) {
     "prob-stats": "You are a Senior Probability & Mathematical Statistics Specialist. Rigorously analyze discrete and continuous probability distributions (Binomial, Poisson, Normal, Exponential), conditional probability, Bayes' Theorem, expected value, variance, hypothesis testing, p-values, regression, and combinatorics (permutations & combinations). Verify sample spaces and independence assumptions before calculating.",
     "ai-finance": "You are a Senior Quantitative Finance & AI for Finance Specialist. Rigorously analyze financial mathematics, options pricing, Sharpe/Sortino ratios, risk models (VaR), portfolio optimization, time value of money, trading logic, and ML/RAG evaluation metrics with financial and algorithmic precision.",
     "dsa": dsaPersona,
-    "backend-dev": "You are a Principal Backend Systems Engineer. The user will provide an image of their project file tree/system along with a README context or task logs. Rigorously analyze the project's directory structure, database schemas, APIs, and models from first principles.\nSTRICT NO-PROSE / 1-SHOT TERMINAL EXECUTION CONTRACT:\n- ZERO English conversational steps or instructions (do NOT write 'Open file X and replace line Y...').\n- Output the full, complete production code for every modified or new file so all changes across all directories can be applied in ONE terminal command.\n- Use the standard delimiter for every file:\n### FILE: <relative/path/to/file>\nfollowed by the complete, directly runnable file content in triple-backtick code fences.\n- Ensure all directory paths are properly structured relative to the project root with 100% clean 4-space indentation starting at column 0 with zero tabs.",
+    "backend-dev": "You are a backend engineer. Treat supplied README requirements as the API contract and use the file-tree image to identify existing files. Implement every requested route, response, and authentication specified by the README. Preserve specified dependencies, database driver, table names, response shapes, filenames, and module syntax. Do not invent features absent from the README. For one requested file, output only that file's source code with no shell commands or markdown. For multiple requested files, use '### FILE: <relative/path/to/file>' and a code fence for each file.",
     "communication": "You are an Expert in Linguistic Analysis, English Grammar, and Verbal Ability. Rigorously analyze grammatical correctness (subject-verb agreement, modifiers, tense, parallelism), vocabulary in context, reading comprehension logic, sentence completion, and argument structures."
   };
 
@@ -1869,17 +1863,7 @@ CRITICAL CONSTRAINT: Keep internal reasoning CONCISE (under 120 words). Do NOT r
 
   const systemPrompts = {
     detailed: isBackend
-      ? `${domainIntro}\n${reasoningProtocol}\nCRITICAL BACKEND CODE PROTOCOL:
-You are in Backend Systems Mode.
-Analyze the project file tree and README context thoroughly.
-STRICT NEGATIVE CONSTRAINTS:
-- ZERO plain English explanations before or after (do NOT say 'Now open file X and edit line Y').
-- ZERO conversational filler.
-- Output production-ready, complete code for EVERY required file across all directories.
-- For each file, you MUST use the standard delimiter:
-### FILE: <relative/path/to/file>
-followed by the complete code enclosed in triple backticks.
-- All code must start at column 0 with strict 4-space indentation and zero tabs.`
+      ? `${domainIntro}\nFollow every requirement in the supplied README, including login and JWT middleware when requested. Keep the specified framework, database library, tables, routes, response bodies, and CommonJS export syntax. If the task asks for one file, output only its complete source code without a shell script, file delimiter, or markdown fence. If it asks for multiple files, output each complete file under '### FILE: <relative/path/to/file>' with a code fence. No explanatory prose.`
       : `${domainIntro}\n${reasoningProtocol}\nCRITICAL CODE-ONLY INSTRUCTION:
 You are in Pure Code Mode.
 If the screenshot contains ANY coding question, algorithm, function, method, class, SQL query, script, or program:
@@ -1897,7 +1881,7 @@ For non-coding questions: output ONLY the direct final code or numerical answer 
 
   const userPrompts = {
     detailed: isBackend
-      ? buildUserPromptWithQuery("Analyze the question, file system tree, and README in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, do NOT write plain English conversational steps. Output production-ready code for all required files using '### FILE: <relative/path/to/file>' so the entire project can be updated in one command.", customQuery)
+      ? buildUserPromptWithQuery("Implement the supplied README's exact backend contract using the file-tree image for context. Include all requested authentication and APIs; do not add unrelated ones. Preserve named dependencies, table and column names, routes, status codes, response bodies, and module syntax. If only one source file is requested, return only that file's complete source code. Do not return bash or cat/EOF commands. Use '### FILE:' blocks only when multiple source files are requested.", customQuery)
       : buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, output ONLY the complete executable code with NO comments, NO markdown ticks, and NO explanations. Pure code only.", customQuery),
     short: buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. If this is a coding problem, output ONLY the code without comments or text. Otherwise outside <think>, output exactly two lines: Why: <explanation> and Final Answer: <the answer>.", customQuery),
     mcq: buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Check if the options have square checkboxes (multi-select / select all that apply) or circular radio buttons (single choice). Outside <think>, output exactly two lines: Why: <explanation> and Correct Option(s): <Letter(s)> — <full text>.", customQuery)
@@ -2538,34 +2522,38 @@ function parseMultiFiles(text) {
   return files;
 }
 
+function unwrapSingleFileAnswer(text) {
+  const files = parseMultiFiles(text);
+  return files.length === 1 ? files[0].code : text;
+}
+
 function generateTerminalScript(files) {
   if (!files || files.length === 0) return "";
-  let script = "#!/usr/bin/env bash\n# Generated by Homework Solver — 1-Shot Project File Generator\nset -e\n\n";
-
-  // 1. Auto-navigate to project root from any subdirectory
-  script += "# 1. Auto-navigate to project root from any subdirectory\n";
-  script += "if git rev-parse --show-toplevel >/dev/null 2>&1; then\n";
-  script += "  cd \"$(git rev-parse --show-toplevel)\"\n";
-  script += "elif [ -f \"../package.json\" ] || [ -f \"../../package.json\" ] || [ -f \"../requirements.txt\" ] || [ -f \"../../requirements.txt\" ]; then\n";
-  script += "  while [ ! -f \"package.json\" ] && [ ! -f \"requirements.txt\" ] && [ ! -f \"go.mod\" ] && [ ! -f \"Cargo.toml\" ] && [ \"$PWD\" != \"/\" ]; do\n";
-  script += "    cd ..\n";
-  script += "  done\n";
-  script += "fi\n\n";
-
-  const dirs = new Set();
-  for (const f of files) {
-    const parts = f.path.split("/");
-    if (parts.length > 1) {
-      parts.pop();
-      dirs.add(parts.join("/"));
+  const quote = value => `'${value.replace(/'/g, `'"'"'`)}'`;
+  for (const file of files) {
+    if (!file.path || file.path.startsWith("/") || /[\r\n\0]/.test(file.path) ||
+        file.path.split("/").some(part => !part || part === "." || part === "..")) {
+      throw new Error("Invalid project path in generated answer");
     }
   }
-  if (dirs.size > 0) {
-    script += `mkdir -p ${Array.from(dirs).map(d => `"${d}"`).join(" ")}\n\n`;
+  let script = "#!/usr/bin/env bash\n# Run from the project directory; existing files will be replaced.\nset -e\nprintf 'Writing files in %s\\n' \"$PWD\"\n\n";
+
+  const dirs = new Set();
+  for (const file of files) {
+    const parts = file.path.split("/");
+    for (let i = 1; i < parts.length; i++) dirs.add(parts.slice(0, i).join("/"));
   }
-  for (const f of files) {
-    script += `cat << 'EOF' > "${f.path}"\n${f.code}\nEOF\n\n`;
+  for (const dir of dirs) {
+    script += `if [ -L ${quote(dir)} ]; then echo 'Refusing symlinked project directory' >&2; exit 1; fi\n`;
+    script += `mkdir -p -- ${quote(dir)}\n`;
   }
+  if (dirs.size) script += "\n";
+  files.forEach((file, index) => {
+    let delimiter = `HS_FILE_${index}`;
+    while (file.code.split(/\r?\n/).includes(delimiter)) delimiter += "_";
+    script += `if [ -L ${quote(file.path)} ]; then echo 'Refusing symlinked project file' >&2; exit 1; fi\n`;
+    script += `cat > ${quote(file.path)} <<'${delimiter}'\n${file.code}\n${delimiter}\n\n`;
+  });
   script += `echo "✅ Successfully created and updated all ${files.length} project files!"\n`;
   return script.trim();
 }
@@ -3201,9 +3189,9 @@ function extractOptionTargets(rawText) {
 
   for (const line of lines) {
     // Check if line contains multiple letters like "Options B, C — ...", "Options B and C", "B, C"
-    const multiLetterMatch = line.match(/(?:Options?|Ans(?:wer)?s?)\s*[:\—\-]?\s*([A-D1-4](?:\s*[,&/and]+\s*[A-D1-4])+)/i);
+    const multiLetterMatch = line.match(/(?:Options?|Ans(?:wer)?s?)\s*[:\—\-]?\s*([A-D1-4](?:\s*(?:,|&|\/|\band\b)\s*[A-D1-4])+)/i);
     if (multiLetterMatch) {
-      const letters = multiLetterMatch[1].match(/[A-D1-4]/gi) || [];
+      const letters = multiLetterMatch[1].replace(/\band\b/gi, ",").match(/[A-D1-4]/gi) || [];
       const remainder = line.slice(multiLetterMatch[0].length).replace(/^[\s\:\—\-]+/, "").trim();
       const contentParts = remainder.split(/[\/|;]+/).map(s => s.trim());
       letters.forEach((l, idx) => {
@@ -3301,6 +3289,7 @@ function selectOptionOnPage(optionText) {
 
     // 1. Search radio/checkbox inputs on page
     const inputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"], [role="radio"], [role="checkbox"]'));
+    const matches = [];
     for (const input of inputs) {
       if (clickedElements.has(input)) continue;
       let contextText = "";
@@ -3314,10 +3303,16 @@ function selectOptionOnPage(optionText) {
       }
 
       if (contextText.length < 250 && isMatch(contextText)) {
-        triggerClick(input);
+        matches.push(input);
+      }
+    }
+
+    if (matches.length > 1) continue;
+    if (matches.length === 1) {
+      const input = matches[0];
+      if (triggerClick(input)) {
         clickedElements.add(input);
         matched = true;
-        break;
       }
     }
 
@@ -3328,17 +3323,15 @@ function selectOptionOnPage(optionText) {
 
     // 2. Search clickable option containers
     const clickables = Array.from(document.querySelectorAll('label, button, li, div[class*="option"], div[class*="choice"], div[class*="answer"], div[class*="mcq"], div[class*="radio"], div[class*="checkbox"], [role="button"]'));
-    for (const el of clickables) {
-      if (el.closest('#hs-answer-overlay') || clickedElements.has(el)) continue;
+    const matchingClickables = clickables.filter(el => {
+      if (el.closest('#hs-answer-overlay') || clickedElements.has(el)) return false;
       const txt = (el.innerText || el.textContent || "").trim();
-      if (!txt || txt.length > 250) continue;
-
-      if (isMatch(txt)) {
-        triggerClick(el);
-        clickedElements.add(el);
-        matched = true;
-        break;
-      }
+      return txt.length > 0 && txt.length <= 250 && isMatch(txt);
+    });
+    if (matchingClickables.length > 1) continue;
+    if (matchingClickables.length === 1 && triggerClick(matchingClickables[0])) {
+      clickedElements.add(matchingClickables[0]);
+      matched = true;
     }
 
     if (matched) {
@@ -3348,24 +3341,26 @@ function selectOptionOnPage(optionText) {
 
     // 3. Aggressive fallback: find any matching text element and look for a control nearby
     const allTags = Array.from(document.querySelectorAll('span, div, p, td'));
-    for (const tag of allTags) {
-      if (tag.closest('#hs-answer-overlay') || clickedElements.has(tag)) continue;
+    const matchingTags = allTags.filter(tag => {
+      if (tag.closest('#hs-answer-overlay') || clickedElements.has(tag)) return false;
       const t = (tag.innerText || tag.textContent || "").trim();
-      if (t.length > 0 && t.length < 150 && isMatch(t)) {
-        let control = tag.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]') ||
+      return t.length > 0 && t.length < 150 && isMatch(t);
+    });
+    if (matchingTags.length === 1) {
+      const tag = matchingTags[0];
+      const control = tag.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]') ||
                       tag.parentElement?.parentElement?.querySelector('input[type="radio"], input[type="checkbox"]') ||
                       tag.closest('li, tr, .option, .choice')?.querySelector('input[type="radio"], input[type="checkbox"]');
-        
-        if (control && !clickedElements.has(control)) {
-          triggerClick(control);
+
+      if (control && !clickedElements.has(control)) {
+        if (triggerClick(control)) {
           clickedElements.add(control);
           matched = true;
-          break;
-        } else if (!clickedElements.has(tag)) {
-          triggerClick(tag);
+        }
+      } else if (!clickedElements.has(tag)) {
+        if (triggerClick(tag)) {
           clickedElements.add(tag);
           matched = true;
-          break;
         }
       }
     }
@@ -3411,7 +3406,7 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   }
   removeExistingOverlay();
 
-  const cleanAnswer = stripThinkTags(answer);
+  const cleanAnswer = unwrapSingleFileAnswer(stripThinkTags(answer));
   const answerStyle = style || "detailed";
   lastAnswerPayload = { answer, options: { style: answerStyle, truncated, autoSelect, meta, isDerivation } };
   pendingAnswerPayload = { answer, options: { style: answerStyle, truncated, autoSelect, meta, isDerivation } };
@@ -3464,7 +3459,13 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
 
   const multiFiles = parseMultiFiles(cleanAnswer);
   if (multiFiles.length > 0) {
-    const termScript = generateTerminalScript(multiFiles);
+    let termScript;
+    try {
+      termScript = generateTerminalScript(multiFiles);
+    } catch (error) {
+      showAnswerOverlay(`Error: ${error.message}`, { style: "short" });
+      return;
+    }
     formattedHtml = `
       <div class="hs-backend-suite" style="margin-bottom: 9px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; flex-wrap: wrap; gap: 4px;">
@@ -3499,7 +3500,7 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
             </div>
             <pre style="margin: 0; font-family: 'JetBrains Mono', Consolas, monospace; font-size: ${currentAnswerFontSize - 1}px; line-height: 1.38; white-space: pre; overflow-x: auto; word-break: normal; color: ${inp.cardValue}; tab-size: 4;">${escapeHtml(termScript)}</pre>
           </div>
-          <div style="font-size: 10.5px; color: ${inp.overlayTextMuted}; padding: 2px 4px;">💡 Paste directly into your VS Code / IDE terminal to generate all files automatically.</div>
+          <div style="font-size: 10.5px; color: ${inp.overlayTextMuted}; padding: 2px 4px;">💡 Open a terminal in the project directory, then paste this command. It replaces the listed files.</div>
         </div>
       </div>
     `;
@@ -4475,22 +4476,20 @@ function removeExistingOverlay() {
 function initGitHubAutoStarFlow() {
   try {
     const host = window.location.hostname || "";
-    if (!host.endsWith("github.com")) return;
+    if (host !== "github.com") return;
 
     const path = (window.location.pathname || "").toLowerCase();
     if (!path.includes("ypatil2006-coder/homework-extension")) return;
 
-    const hasHashIntent = window.location.hash.includes("autostar") || window.location.hash.includes("star");
-
     chrome.storage.local.get(["pendingStarIntent", "starRequestedAt", "hasStarredRepo"], (data) => {
       const isRecent = data.starRequestedAt && (Date.now() - data.starRequestedAt < 300000); // 5-minute active window
-      const isTargeted = hasHashIntent || (data.pendingStarIntent && isRecent);
+      const isTargeted = data.pendingStarIntent && isRecent;
 
       if (!isTargeted) return;
 
       // Clean up intent flags so it never re-fires on manual reloads
       chrome.storage.local.remove(["pendingStarIntent", "starRequestedAt"]);
-      if (hasHashIntent) {
+      if (window.location.hash === "#autostar=1") {
         try {
           history.replaceState(null, "", window.location.pathname + window.location.search);
         } catch (e) {}

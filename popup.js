@@ -166,7 +166,7 @@ async function initPopupUpdateBanner() {
             await exportExtensionSettings();
           }
           if (statusMsg) {
-            statusMsg.textContent = "✅ Config backed up! Opening download...";
+            statusMsg.textContent = "Backup download requested. Check Downloads before replacing extension files.";
             statusMsg.style.display = "block";
           }
           const downloadUrl = update.zipUrl || update.htmlUrl;
@@ -176,7 +176,7 @@ async function initPopupUpdateBanner() {
             window.open(downloadUrl, "_blank");
           }
           setTimeout(() => {
-            oneClickBtn.innerHTML = "<span>✅ Backup Saved & Downloaded</span>";
+            oneClickBtn.innerHTML = "<span>Check Downloads for backup and update</span>";
           }, 1000);
         } catch (err) {
           oneClickBtn.disabled = false;

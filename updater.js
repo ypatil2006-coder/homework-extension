@@ -37,7 +37,7 @@ async function fetchLatestReleaseInfo() {
         tagName: data.tag_name,
         name: data.name || `Version ${remoteVersion}`,
         htmlUrl: data.html_url || `https://github.com/${GITHUB_REPO}/releases`,
-        zipUrl: (data.assets && data.assets[0]?.browser_download_url) || `https://github.com/${GITHUB_REPO}/archive/refs/heads/main.zip`,
+        zipUrl: data.assets?.find(asset => /\.zip(?:[?#]|$)/i.test(asset.browser_download_url || ""))?.browser_download_url || `https://github.com/${GITHUB_REPO}/archive/refs/tags/${encodeURIComponent(data.tag_name)}.zip`,
         body: data.body || "",
         publishedAt: data.published_at || new Date().toISOString()
       };
@@ -130,7 +130,7 @@ async function checkForExtensionUpdates({ force = false } = {}) {
 // ── 1-Click Backup Export Helper ────────────────────────
 // Serializes all API keys, custom models, reasoning approaches,
 // theme customizations, optics, and shortcuts into a portable JSON file.
-async function exportExtensionSettings() {
+async function exportExtensionSettings({ download = true } = {}) {
   const keysToExport = [
     "api", "keys", "models", "subject", "style", "autoSelect", "dotMode", "dotSize", "dotOpacity", "dotColor", "hsDotPos", "hasStarredRepo",
     "globalApproach", "subjectApproaches", "quickApproach",
@@ -141,7 +141,7 @@ async function exportExtensionSettings() {
     "answerStealthMode", "answerBorderThickness", "answerBorderRadius", "answerWidth", "answerOpacity",
     "answerBlur", "answerFontSize", "answerBorderStyle", "answerDragBar", "answerAutoCopy",
     "answerCustomColorEnabled", "answerCustomBgColor", "answerCustomTextColor", "answerCustomBorderColor",
-    "lastGood", "providerKeyIndices"
+    "lastGood", "providerKeyIndices", "dsaLanguage", "dsaOptimize", "dsaFormat", "hsOverlayPos"
   ];
 
   const data = await chrome.storage.local.get(keysToExport);
@@ -157,7 +157,7 @@ async function exportExtensionSettings() {
 
   // 1. Download file automatically if DOM document exists
   if (typeof document !== "undefined") {
-    try {
+    if (download) {
       const blob = new Blob([jsonStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const dateStr = new Date().toISOString().slice(0, 10);
@@ -170,16 +170,15 @@ async function exportExtensionSettings() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 1000);
-    } catch (e) {
-      console.warn("[hs-updater] File download failed:", e);
     }
 
     // 2. Copy to clipboard as backup
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(jsonStr);
-      }
-    } catch (e) {}
+    if (download) {
+      try { await navigator.clipboard?.writeText(jsonStr); } catch (e) {}
+    } else {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard access is unavailable.");
+      await navigator.clipboard.writeText(jsonStr);
+    }
   }
 
   return exportPayload;

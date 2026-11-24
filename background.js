@@ -9,10 +9,7 @@ function initDefaultKeys() {
   chrome.storage.local.get(["keys", "configVersion"], (data) => {
     const keys = data.keys || {};
     const defaultList = DEFAULT_GROQ_KEYS.split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
-    const existingList = (keys.Groq || "").split(/[\n,]+/).map(k => k.trim()).filter(Boolean);
-
-    // Auto-migrate if no keys or old config (fewer than all default keys)
-    if (!keys.Groq || existingList.length < defaultList.length) {
+    if (!keys.Groq && defaultList.length) {
       keys.Groq = DEFAULT_GROQ_KEYS;
       chrome.storage.local.set({ keys, configVersion: 2 });
     }
@@ -39,6 +36,23 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 initDefaultKeys();
+
+let keyIndexQueue = Promise.resolve();
+function reserveGroqKeyIndex(total) {
+  if (!Number.isInteger(total) || total < 1) {
+    return Promise.reject(new Error("Invalid Groq key count"));
+  }
+  const result = keyIndexQueue.then(async () => {
+    const stored = await chrome.storage.local.get(["providerKeyIndices"]);
+    const indices = stored.providerKeyIndices || {};
+    const index = (indices.Groq || 0) % total;
+    indices.Groq = (index + 1) % total;
+    await chrome.storage.local.set({ providerKeyIndices: indices });
+    return index;
+  });
+  keyIndexQueue = result.catch(() => {});
+  return result;
+}
 
 chrome.commands.onCommand.addListener((command) => {
   if (command === "activate-snip") {
@@ -83,13 +97,17 @@ chrome.commands.onCommand.addListener((command) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.action === "reserveGroqKeyIndex") {
+    reserveGroqKeyIndex(msg.total)
+      .then(index => sendResponse({ index }))
+      .catch(error => sendResponse({ error: error.message }));
+    return true;
+  }
   if (msg.action === "captureScreen") {
     const winId = (sender && sender.tab && sender.tab.windowId) ? sender.tab.windowId : null;
     chrome.tabs.captureVisibleTab(winId, { format: "png" }, (dataUrl) => {
       if (chrome.runtime.lastError || !dataUrl) {
-        chrome.tabs.captureVisibleTab(null, { format: "png" }, (fallbackUrl) => {
-          sendResponse({ dataUrl: fallbackUrl || null });
-        });
+        sendResponse({ dataUrl: null });
         return;
       }
       sendResponse({ dataUrl });

@@ -1318,15 +1318,15 @@ if (testKeysBtn) {
         if (res.ok) {
           const data = await res.json().catch(() => ({}));
           const modelIds = (data?.data || []).map(m => m.id);
-          const hasQwen38 = modelIds.includes("qwen/qwen3.8-27b");
-          if (hasQwen38) {
+          const selectedModel = document.getElementById("modelInput").value.trim() || "qwen/qwen3.8-27b";
+          if (modelIds.includes(selectedModel)) {
             const infRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
               method: "POST",
               headers: { "Authorization": `Bearer ${k}`, "Content-Type": "application/json" },
-              body: JSON.stringify({ model: "qwen/qwen3.8-27b", messages: [{ role: "user", content: "ping" }], temperature: 0, max_tokens: 1 })
+              body: JSON.stringify({ model: selectedModel, messages: [{ role: "user", content: "ping" }], temperature: 0, max_tokens: 1 })
             });
             if (infRes.ok) {
-              results.push(`<div style="color: #267344; margin-bottom: 4px;">✅ <b>Key #${i+1} (${shortKey})</b>: Active & verified Qwen 3.8 inference!</div>`);
+              results.push(`<div style="color: #267344; margin-bottom: 4px;">✅ <b>Key #${i+1} (${shortKey})</b>: Active & verified inference!</div>`);
             } else if (infRes.status === 429) {
               results.push(`<div style="color: #b45309; margin-bottom: 4px;">⏳ <b>Key #${i+1} (${shortKey})</b>: Rate limited (429 - Token Quota).</div>`);
             } else {
@@ -1334,7 +1334,7 @@ if (testKeysBtn) {
               results.push(`<div style="color: #b45309; margin-bottom: 4px;">⚠️ <b>Key #${i+1} (${shortKey})</b>: ${infErr?.error?.message || `HTTP ${infRes.status}`}.</div>`);
             }
           } else {
-            results.push(`<div style="color: #b91c1c; margin-bottom: 4px;">❌ <b>Key #${i+1} (${shortKey})</b>: Valid key, but NO access to Qwen 3.8.</div>`);
+            results.push(`<div style="color: #b91c1c; margin-bottom: 4px;">❌ <b>Key #${i+1} (${shortKey})</b>: Valid key, but no access to the selected model.</div>`);
           }
         } else if (res.status === 429) {
           results.push(`<div style="color: #b45309; margin-bottom: 4px;">⏳ <b>Key #${i+1} (${shortKey})</b>: Rate limited (429 - out of tokens).</div>`);
@@ -1449,7 +1449,7 @@ async function initUpdateAndBackupUI() {
       try {
         await performOneClickUpdateFlow();
         if (updateStatus) {
-          updateStatus.textContent = "✅ Backup saved (.json) + release zip opened! Replace files in extension directory and reload in chrome://extensions.";
+          updateStatus.textContent = "Backup download requested and release zip opened. Check Downloads before replacing extension files, then reload in chrome://extensions.";
         }
         setTimeout(() => {
           oneClickFullBtn.disabled = false;
@@ -1507,7 +1507,7 @@ async function initUpdateAndBackupUI() {
         await exportExtensionSettings();
         if (backupStatus) {
           backupStatus.style.color = "#1d6638";
-          backupStatus.textContent = "✅ Configuration backup downloaded & copied to clipboard!";
+          backupStatus.textContent = "Backup download requested. Check Downloads for the file.";
           setTimeout(() => { backupStatus.textContent = ""; }, 3500);
         }
       } catch (err) {
@@ -1521,7 +1521,7 @@ async function initUpdateAndBackupUI() {
   if (exportClipboardBtn) {
     exportClipboardBtn.addEventListener("click", async () => {
       try {
-        await exportExtensionSettings();
+        await exportExtensionSettings({ download: false });
         if (backupStatus) {
           backupStatus.style.color = "#1d6638";
           backupStatus.textContent = "✅ Backup JSON copied to clipboard!";
