@@ -165,15 +165,19 @@ assert.strictEqual(accumulatedText, "No code to output.", "Failed: SSE reader sh
 function normalizeHexColor(c) {
   if (!c || typeof c !== "string") return "#1e293b";
   let str = c.trim();
-  if (!str.startsWith("#") && /^[0-9a-fA-F]{6}$/i.test(str)) {
+  if (!str.startsWith("#")) {
     str = `#${str}`;
+  }
+  if (/^#[0-9a-fA-F]{3}$/i.test(str)) {
+    str = `#${str[1]}${str[1]}${str[2]}${str[2]}${str[3]}${str[3]}`;
   }
   return /^#[0-9a-fA-F]{6}$/i.test(str) ? str.toLowerCase() : "#1e293b";
 }
 
 assert.strictEqual(normalizeHexColor("#10b981"), "#10b981", "Failed: Valid hex should be preserved");
 assert.strictEqual(normalizeHexColor("3b82f6"), "#3b82f6", "Failed: Hex without # should be prefixed");
-assert.strictEqual(normalizeHexColor("#FFF"), "#1e293b", "Failed: Invalid 3-digit hex should fallback to default #1e293b");
+assert.strictEqual(normalizeHexColor("#FFF"), "#ffffff", "Failed: 3-digit hex should expand to 6-digit hex");
+assert.strictEqual(normalizeHexColor("fff"), "#ffffff", "Failed: Unprefixed 3-digit hex should expand to 6-digit hex");
 assert.strictEqual(normalizeHexColor("invalid-color"), "#1e293b", "Failed: Non-hex should fallback to default #1e293b");
 assert.strictEqual(normalizeHexColor(null), "#1e293b", "Failed: Null should fallback to default #1e293b");
 

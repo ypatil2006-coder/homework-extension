@@ -1100,8 +1100,11 @@ if (dotOpacitySlider) {
 function normalizeHexColor(c) {
   if (!c || typeof c !== "string") return "#1e293b";
   let str = c.trim();
-  if (!str.startsWith("#") && /^[0-9a-fA-F]{6}$/i.test(str)) {
+  if (!str.startsWith("#")) {
     str = `#${str}`;
+  }
+  if (/^#[0-9a-fA-F]{3}$/i.test(str)) {
+    str = `#${str[1]}${str[1]}${str[2]}${str[2]}${str[3]}${str[3]}`;
   }
   return /^#[0-9a-fA-F]{6}$/i.test(str) ? str.toLowerCase() : "#1e293b";
 }
@@ -1129,11 +1132,13 @@ function updateDotColorUI(color) {
   document.querySelectorAll(".dot-color-swatch").forEach(swatch => {
     const swColor = (swatch.dataset.color || "").toLowerCase();
     if (swColor === normColor) {
-      swatch.style.borderColor = "#3b82f6";
+      swatch.style.borderColor = "#ffffff";
+      swatch.style.boxShadow = "0 0 0 2px var(--card-bg, #ffffff), 0 0 0 4px #3b82f6";
       swatch.style.transform = "scale(1.15)";
       swatch.classList.add("active");
     } else {
       swatch.style.borderColor = (swColor === "#ffffff") ? "rgba(0,0,0,0.25)" : "transparent";
+      swatch.style.boxShadow = "0 1px 3px rgba(0,0,0,0.15)";
       swatch.style.transform = "scale(1.0)";
       swatch.classList.remove("active");
     }
@@ -1164,15 +1169,15 @@ const dotColorHex = document.getElementById("dotColorHex");
 if (dotColorHex) {
   dotColorHex.addEventListener("input", (e) => {
     let val = e.target.value.trim();
-    if (!val.startsWith("#") && /^[0-9a-fA-F]{6}$/i.test(val)) {
+    if (!val.startsWith("#")) {
       val = `#${val}`;
     }
-    if (/^#[0-9a-fA-F]{6}$/i.test(val)) {
+    if (/^#[0-9a-fA-F]{3}$/i.test(val) || /^#[0-9a-fA-F]{6}$/i.test(val)) {
       setDotColor(val);
     }
   });
   dotColorHex.addEventListener("blur", (e) => {
-    updateDotColorUI(e.target.value);
+    setDotColor(e.target.value);
   });
 }
 

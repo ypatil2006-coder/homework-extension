@@ -325,7 +325,7 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
         if (res.dotMode !== undefined) currentDotMode = !!res.dotMode;
         if (res.dotSize !== undefined) currentDotSize = Number(res.dotSize);
         if (res.dotOpacity !== undefined) currentDotOpacity = Number(res.dotOpacity);
-        if (res.dotColor) currentDotColor = String(res.dotColor);
+        if (res.dotColor) currentDotColor = normalizeHexColor(res.dotColor);
         if (res.snipCursor) currentSnipCursor = res.snipCursor;
         if (res.customCursorUrl) currentCustomCursorUrl = res.customCursorUrl;
         if (res.snipDimming !== undefined) currentSnipDimming = Number(res.snipDimming);
@@ -366,7 +366,7 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
           applyDotOptics(document.getElementById("hs-dot-trigger"));
         }
         if (changes.dotColor !== undefined) {
-          currentDotColor = String(changes.dotColor.newValue || "#1e293b");
+          currentDotColor = normalizeHexColor(changes.dotColor.newValue);
           applyDotOptics(document.getElementById("hs-dot-trigger"));
         }
         if (changes.hsDotPos) savedDotPos = changes.hsDotPos.newValue;
@@ -1739,7 +1739,7 @@ async function callAPI(b64, { forceStyle, customQuery } = {}) {
     if (data.dotMode !== undefined) currentDotMode = !!data.dotMode;
     if (data.dotSize !== undefined) currentDotSize = Number(data.dotSize);
     if (data.dotOpacity !== undefined) currentDotOpacity = Number(data.dotOpacity);
-    if (data.dotColor) currentDotColor = String(data.dotColor);
+    if (data.dotColor) currentDotColor = normalizeHexColor(data.dotColor);
     if (data.hsDotPos) savedDotPos = data.hsDotPos;
 
     keys = data.keys;
@@ -2783,16 +2783,33 @@ function updateStreamingOverlay(partialText, style) {
   }
 }
 
+function normalizeHexColor(c) {
+  if (!c || typeof c !== "string") return "#1e293b";
+  let str = c.trim();
+  if (!str.startsWith("#")) {
+    str = `#${str}`;
+  }
+  if (/^#[0-9a-fA-F]{3}$/i.test(str)) {
+    str = `#${str[1]}${str[1]}${str[2]}${str[2]}${str[3]}${str[3]}`;
+  }
+  return /^#[0-9a-fA-F]{6}$/i.test(str) ? str.toLowerCase() : "#1e293b";
+}
+
 // ── Discreet Floating Dot Engine ───────────────────
 function applyDotOptics(dotEl) {
   if (!dotEl) return;
   const size = typeof currentDotSize === "number" ? Math.max(0, currentDotSize) : 11;
   const op = typeof currentDotOpacity === "number" ? Math.max(0, Math.min(100, currentDotOpacity)) : 50;
-  const color = (currentDotColor && typeof currentDotColor === "string") ? currentDotColor : "#1e293b";
+  const color = normalizeHexColor(currentDotColor);
   dotEl.style.setProperty("--hs-dot-size", `${size}px`);
   dotEl.style.setProperty("--hs-dot-opacity", `${op / 100}`);
   dotEl.style.setProperty("--hs-dot-color", color);
   dotEl.style.background = color;
+  if (color === "#ffffff" || color === "#fff") {
+    dotEl.style.boxShadow = "0 0 0 1px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25)";
+  } else {
+    dotEl.style.boxShadow = "0 0 0 1px rgba(255, 255, 255, 0.18), 0 1px 2px rgba(0, 0, 0, 0.2)";
+  }
 }
 
 function showDotOverlay({ state = "solving", status = "Solving question...", pendingAnswer = null } = {}) {
@@ -3905,6 +3922,10 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
       #hs-settings-btn:active, #hs-copy:active, #hs-minimize:active, #hs-close:active { transform: scale(0.92); }
       #hs-expand-step:hover { filter: brightness(1.08); }
       #hs-expand-step:active { transform: scale(0.96); }
+      #hs-setting-save-btn:hover { filter: brightness(0.92); }
+      #hs-setting-resolve-btn:hover { filter: brightness(1.15); }
+      #hs-setting-back-bottom-btn:hover { background: rgba(0, 0, 0, 0.05) !important; }
+      .hs-setting-style-pill:hover { filter: brightness(0.96); }
     </style>
   `;
 
@@ -4190,13 +4211,17 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   const renderDynamicSubjectCard = (subjVal) => {
     const card = box.querySelector("#hs-dynamic-subject-card");
     if (!card) return;
+    const dsaSubSelectStyle = isStealth
+      ? "width: 100%; padding: 4px 6px; font-size: 11px; border-radius: 4px; background: rgba(0, 0, 0, 0.03); color: #111111; border: 1px solid rgba(0, 0, 0, 0.25); outline: none; font-weight: 500;"
+      : `width: 100%; padding: 3px 6px; font-size: 11px; border-radius: 4px; background: ${colorWithAlpha(inp.cardBg, 0.9)}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none;`;
+
     if (subjVal === "dsa") {
       card.style.display = "block";
       card.innerHTML = `
-        <div style="font-size: 11px; font-weight: 700; color: ${inp.cardLabel}; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px;">⚡ DSA Configuration</div>
+        <div style="font-size: 11px; font-weight: 700; color: ${settingLabelColor}; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px;">⚡ DSA Configuration</div>
         <div style="margin-bottom: 6px;">
-          <label style="display: block; font-size: 10px; color: ${inp.overlayTextMuted}; margin-bottom: 2px;">Target Language</label>
-          <select id="hs-dsa-lang" style="width: 100%; padding: 3px 6px; font-size: 11px; border-radius: 4px; background: ${colorWithAlpha(inp.cardBg, 0.9)}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none;">
+          <label style="display: block; font-size: 10px; color: ${isStealth ? '#555555' : inp.overlayTextMuted}; margin-bottom: 2px; font-weight: 600;">Target Language</label>
+          <select id="hs-dsa-lang" style="${dsaSubSelectStyle}">
             <option value="Python" ${currentQuickSettings.dsaLanguage === "Python" ? "selected" : ""}>Python</option>
             <option value="C++" ${currentQuickSettings.dsaLanguage === "C++" ? "selected" : ""}>C++</option>
             <option value="Java" ${currentQuickSettings.dsaLanguage === "Java" ? "selected" : ""}>Java</option>
@@ -4207,16 +4232,16 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
           </select>
         </div>
         <div style="margin-bottom: 6px;">
-          <label style="display: block; font-size: 10px; color: ${inp.overlayTextMuted}; margin-bottom: 2px;">Optimization Target</label>
-          <select id="hs-dsa-opt" style="width: 100%; padding: 3px 6px; font-size: 11px; border-radius: 4px; background: ${colorWithAlpha(inp.cardBg, 0.9)}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none;">
+          <label style="display: block; font-size: 10px; color: ${isStealth ? '#555555' : inp.overlayTextMuted}; margin-bottom: 2px; font-weight: 600;">Optimization Target</label>
+          <select id="hs-dsa-opt" style="${dsaSubSelectStyle}">
             <option value="Optimal Time & Space" ${currentQuickSettings.dsaOptimize === "Optimal Time & Space" ? "selected" : ""}>Optimal Time & Space</option>
             <option value="Minimal Code / Clean" ${currentQuickSettings.dsaOptimize === "Minimal Code / Clean" ? "selected" : ""}>Minimal Code / Clean</option>
             <option value="Verbose with Assertions" ${currentQuickSettings.dsaOptimize === "Verbose with Assertions" ? "selected" : ""}>Verbose with Assertions</option>
           </select>
         </div>
         <div>
-          <label style="display: block; font-size: 10px; color: ${inp.overlayTextMuted}; margin-bottom: 2px;">Solution Format</label>
-          <select id="hs-dsa-fmt" style="width: 100%; padding: 3px 6px; font-size: 11px; border-radius: 4px; background: ${colorWithAlpha(inp.cardBg, 0.9)}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none;">
+          <label style="display: block; font-size: 10px; color: ${isStealth ? '#555555' : inp.overlayTextMuted}; margin-bottom: 2px; font-weight: 600;">Solution Format</label>
+          <select id="hs-dsa-fmt" style="${dsaSubSelectStyle}">
             <option value="Function Solution" ${currentQuickSettings.dsaFormat === "Function Solution" ? "selected" : ""}>Function Solution (LeetCode / Platform)</option>
             <option value="Complete Executable Script" ${currentQuickSettings.dsaFormat === "Complete Executable Script" ? "selected" : ""}>Complete Executable Script (stdin/stdout)</option>
           </select>
@@ -4228,8 +4253,8 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     } else if (subjVal === "backend-dev") {
       card.style.display = "block";
       card.innerHTML = `
-        <div style="font-size: 11px; font-weight: 700; color: ${inp.cardLabel}; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px;">📁 Backend Architecture Mode</div>
-        <div style="font-size: 10.5px; line-height: 1.4; color: ${inp.cardValue};">
+        <div style="font-size: 11px; font-weight: 700; color: ${settingLabelColor}; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px;">📁 Backend Architecture Mode</div>
+        <div style="font-size: 10.5px; line-height: 1.4; color: ${isStealth ? '#111111' : inp.cardValue};">
           All databases, models, schemas, and framework choices are extracted <strong>directly from your README context or search input</strong>.
           Outputs production-ready files viewable under <strong>📑 Files</strong> or <strong>💻 Terminal Script</strong>.
         </div>
@@ -4323,15 +4348,22 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   }
 
   let selectedStyle = answerStyle || currentQuickSettings.style;
+  const updateStylePillsUI = (activeVal) => {
+    stylePills.forEach(p => {
+      const pStyle = getStylePillStyles(p.dataset.style, activeVal);
+      p.style.background = pStyle.bg;
+      p.style.color = pStyle.color;
+      p.style.border = pStyle.border;
+      p.style.fontWeight = pStyle.weight;
+      p.style.boxShadow = pStyle.shadow;
+    });
+  };
+
   stylePills.forEach(pill => {
     pill.onclick = (e) => {
       e.stopPropagation();
       selectedStyle = pill.dataset.style;
-      stylePills.forEach(p => {
-        const isActive = p.dataset.style === selectedStyle;
-        p.style.background = isActive ? inp.buttonBg : "transparent";
-        p.style.color = isActive ? inp.buttonText : inp.overlayTextMuted;
-      });
+      updateStylePillsUI(selectedStyle);
     };
   });
 
