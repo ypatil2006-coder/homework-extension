@@ -30,11 +30,12 @@ A high-speed, unobtrusive screen-snipping browser assistant for students, develo
     - **Reasoning Engine**: Switch between Normal Single-Pass (~1.2s), ⚡ Parallel Dual-Key Consensus (~1.5s), and 🧠 Deep Sequential 3-Stage Pipeline.
     - **DOM Auto-Selection**: Toggle auto-clicking detected MCQ/MSQ options on active web pages.
 
-- **⌨️ 3-State Floating Dot Cycling (Alt+D Shortcut)**:
+- **⌨️ 3-State Floating Dot Cycling (Alt+D Shortcut) & Color Customization**:
   - Smart state cycling for the discreet floating dot:
     - **State 1 (Window open)**: Pressing <kbd>Alt+D</kbd> minimizes the overlay to a subtle floating dot on the screen.
     - **State 2 (Dot visible)**: Pressing <kbd>Alt+D</kbd> completely hides the dot for zero screen visibility.
     - **State 3 (Dot hidden)**: Pressing <kbd>Alt+D</kbd> immediately reshows the dot with your answer preserved.
+  - **🎨 Custom Dot Colors (Presets & Custom Hex)**: Personalize the indicator with basic presets (Slate, Emerald, Blue, Amber, Rose, Violet, White, Black) or any custom 6-digit HEX code via the integrated picker.
 
 - **↩️ Universal Multi-Point Back Navigation & Answer History Stack**:
   - Never get trapped in a view again! Full multi-point back navigation across all modes:

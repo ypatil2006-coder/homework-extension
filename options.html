@@ -1368,6 +1368,12 @@
               </div>
             </li>
             <li class="release-feature-row">
+              <span class="release-bullet-icon">🎨</span>
+              <div class="release-feature-content">
+                <strong>Floating Dot Color Customization:</strong> Personalize your floating indicator with basic preset swatches (Slate, Emerald, Electric Blue, Amber, Rose, Violet, White, Black) or any custom 6-digit hex code with live preview.
+              </div>
+            </li>
+            <li class="release-feature-row">
               <span class="release-bullet-icon">↩️</span>
               <div class="release-feature-content">
                 <strong>Universal Multi-Point Back Navigation:</strong> Never get stranded! Prominent back navigation buttons in the header, follow-up banner, bottom action cards, and live streaming overlays allow returning to previous answers with 1 click.
@@ -2184,6 +2190,41 @@
                 <input type="range" id="dotOpacitySlider" min="0" max="100" step="1" value="50">
                 <p class="field-hint">Can be decreased all the way to 0% (completely transparent ghost).</p>
               </div>
+            </div>
+
+            <!-- Floating Dot Color & Custom Hex Palette -->
+            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(100, 116, 139, 0.25);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
+                  Dot Color & Styling
+                </label>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 11px; color: var(--text-muted);">Preview:</span>
+                  <span id="dotColorPreview" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: all 0.15s ease;"></span>
+                </div>
+              </div>
+
+              <!-- Preset Basic / Predefined Color Swatches -->
+              <div id="dotColorSwatches" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;">
+                <button type="button" class="dot-color-swatch active" data-color="#1e293b" title="Classic Slate (Default)" style="width: 26px; height: 26px; border-radius: 50%; background: #1e293b; border: 2px solid #3b82f6; cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.12s;"></button>
+                <button type="button" class="dot-color-swatch" data-color="#10b981" title="Emerald Green" style="width: 26px; height: 26px; border-radius: 50%; background: #10b981; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.12s;"></button>
+                <button type="button" class="dot-color-swatch" data-color="#3b82f6" title="Electric Blue" style="width: 26px; height: 26px; border-radius: 50%; background: #3b82f6; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.12s;"></button>
+                <button type="button" class="dot-color-swatch" data-color="#f59e0b" title="Amber / Gold" style="width: 26px; height: 26px; border-radius: 50%; background: #f59e0b; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.12s;"></button>
+                <button type="button" class="dot-color-swatch" data-color="#ef4444" title="Crimson / Rose" style="width: 26px; height: 26px; border-radius: 50%; background: #ef4444; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.12s;"></button>
+                <button type="button" class="dot-color-swatch" data-color="#8b5cf6" title="Royal Violet" style="width: 26px; height: 26px; border-radius: 50%; background: #8b5cf6; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.12s;"></button>
+                <button type="button" class="dot-color-swatch" data-color="#ffffff" title="Pure White" style="width: 26px; height: 26px; border-radius: 50%; background: #ffffff; border: 2px solid rgba(0,0,0,0.25); cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.12s;"></button>
+                <button type="button" class="dot-color-swatch" data-color="#000000" title="Pitch Black" style="width: 26px; height: 26px; border-radius: 50%; background: #000000; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.12s;"></button>
+              </div>
+
+              <!-- Hex Code and Native Color Picker Input -->
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="color" id="dotColorPicker" value="#1e293b" style="width: 36px; height: 34px; padding: 1px 2px; border-radius: 6px; border: 1px solid var(--glass-border); cursor: pointer; background: transparent;">
+                <div style="position: relative; flex: 1;">
+                  <input type="text" id="dotColorHex" placeholder="#1e293b" maxlength="7" style="width: 100%; padding: 7px 10px; font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12.5px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--card-bg); color: var(--text-primary); outline: none; box-sizing: border-box;">
+                </div>
+                <button type="button" class="btn btn-secondary" id="dotColorResetBtn" style="padding: 7px 12px; font-size: 11.5px;">Reset</button>
+              </div>
+              <p class="field-hint" style="margin-top: 5px;">Pick from basic preset colors or type any custom 6-digit hex code (e.g. <code>#10b981</code>).</p>
             </div>
           </div>
 

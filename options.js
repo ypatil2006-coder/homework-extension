@@ -789,7 +789,7 @@ if (ansBlurSlider) {
 // Load saved settings from chrome.storage.local
 function loadSettings() {
   chrome.storage.local.get([
-    "keys", "models", "style", "subject", "autoSelect", "dotMode", "dotSize", "dotOpacity", "snipCursor", "customCursorUrl",
+    "keys", "models", "style", "subject", "autoSelect", "dotMode", "dotSize", "dotOpacity", "dotColor", "snipCursor", "customCursorUrl",
     "globalApproach", "subjectApproaches",
     "snipThemeMode", "snipCustomTheme", "answerThemeMode", "answerCustomTheme", "splitAnswerTheme",
     "tabThemeMode", "tabCustomTheme", "themeMode", "customTheme", "themeScope",
@@ -831,6 +831,9 @@ function loadSettings() {
     const ov1 = document.getElementById("dotOpacityVal");
     if (o1) o1.value = dotOpacity;
     if (ov1) ov1.innerText = `${dotOpacity}%`;
+
+    const dotColor = data.dotColor || "#1e293b";
+    updateDotColorUI(dotColor);
 
     // Load Global Reasoning Approach & Domain Customizations
     const globalApproach = data.globalApproach || "normal";
@@ -976,6 +979,7 @@ function saveSettings(callback) {
   const dotSize = sizeEl ? Number(sizeEl.value) : 11;
   const opacityEl = document.getElementById("dotOpacitySlider");
   const dotOpacity = opacityEl ? Number(opacityEl.value) : 50;
+  const dotColor = normalizeHexColor(document.getElementById("dotColorHex")?.value);
   const snipCursor = document.getElementById("cursorPresetSelect").value;
   const customCursorUrl = document.getElementById("customCursorUrlInput").value.trim();
 
@@ -1006,6 +1010,7 @@ function saveSettings(callback) {
       dotMode,
       dotSize,
       dotOpacity,
+      dotColor,
       globalApproach,
       subjectApproaches,
       snipCursor,
@@ -1076,6 +1081,7 @@ if (dotSizeSlider) {
     const num = Number(e.target.value);
     if (dotSizeVal) dotSizeVal.innerText = `${num}px`;
     chrome.storage.local.set({ dotSize: num });
+    updateDotColorPreview();
   });
 }
 
@@ -1086,6 +1092,94 @@ if (dotOpacitySlider) {
     const num = Number(e.target.value);
     if (dotOpacityVal) dotOpacityVal.innerText = `${num}%`;
     chrome.storage.local.set({ dotOpacity: num });
+    updateDotColorPreview();
+  });
+}
+
+// ── Floating Dot Color Customization ──
+function normalizeHexColor(c) {
+  if (!c || typeof c !== "string") return "#1e293b";
+  let str = c.trim();
+  if (!str.startsWith("#") && /^[0-9a-fA-F]{6}$/i.test(str)) {
+    str = `#${str}`;
+  }
+  return /^#[0-9a-fA-F]{6}$/i.test(str) ? str.toLowerCase() : "#1e293b";
+}
+
+function updateDotColorPreview() {
+  const preview = document.getElementById("dotColorPreview");
+  if (!preview) return;
+  const hex = normalizeHexColor(document.getElementById("dotColorHex")?.value);
+  const size = Number(document.getElementById("dotSizeSlider")?.value || 11);
+  const op = Number(document.getElementById("dotOpacitySlider")?.value || 50);
+  preview.style.background = hex;
+  preview.style.width = `${Math.max(6, Math.min(22, size))}px`;
+  preview.style.height = `${Math.max(6, Math.min(22, size))}px`;
+  preview.style.opacity = `${Math.max(0.05, op / 100)}`;
+}
+
+function updateDotColorUI(color) {
+  const normColor = normalizeHexColor(color);
+  const hexInput = document.getElementById("dotColorHex");
+  const picker = document.getElementById("dotColorPicker");
+  if (hexInput) hexInput.value = normColor;
+  if (picker) picker.value = normColor;
+  updateDotColorPreview();
+
+  document.querySelectorAll(".dot-color-swatch").forEach(swatch => {
+    const swColor = (swatch.dataset.color || "").toLowerCase();
+    if (swColor === normColor) {
+      swatch.style.borderColor = "#3b82f6";
+      swatch.style.transform = "scale(1.15)";
+      swatch.classList.add("active");
+    } else {
+      swatch.style.borderColor = (swColor === "#ffffff") ? "rgba(0,0,0,0.25)" : "transparent";
+      swatch.style.transform = "scale(1.0)";
+      swatch.classList.remove("active");
+    }
+  });
+}
+
+function setDotColor(color) {
+  const normColor = normalizeHexColor(color);
+  updateDotColorUI(normColor);
+  chrome.storage.local.set({ dotColor: normColor });
+}
+
+document.querySelectorAll(".dot-color-swatch").forEach(swatch => {
+  swatch.addEventListener("click", () => {
+    const col = swatch.dataset.color;
+    if (col) setDotColor(col);
+  });
+});
+
+const dotColorPicker = document.getElementById("dotColorPicker");
+if (dotColorPicker) {
+  dotColorPicker.addEventListener("input", (e) => {
+    setDotColor(e.target.value);
+  });
+}
+
+const dotColorHex = document.getElementById("dotColorHex");
+if (dotColorHex) {
+  dotColorHex.addEventListener("input", (e) => {
+    let val = e.target.value.trim();
+    if (!val.startsWith("#") && /^[0-9a-fA-F]{6}$/i.test(val)) {
+      val = `#${val}`;
+    }
+    if (/^#[0-9a-fA-F]{6}$/i.test(val)) {
+      setDotColor(val);
+    }
+  });
+  dotColorHex.addEventListener("blur", (e) => {
+    updateDotColorUI(e.target.value);
+  });
+}
+
+const dotColorResetBtn = document.getElementById("dotColorResetBtn");
+if (dotColorResetBtn) {
+  dotColorResetBtn.addEventListener("click", () => {
+    setDotColor("#1e293b");
   });
 }
 
@@ -1139,6 +1233,7 @@ document.getElementById("resetDefaultsBtn").addEventListener("click", () => {
         dotMode: false,
         dotSize: 11,
         dotOpacity: 50,
+        dotColor: "#1e293b",
         globalApproach: "normal",
         subjectApproaches: {},
         quickApproach: "global",

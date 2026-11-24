@@ -31,6 +31,7 @@ let savedDotPos = null;
 let currentDotMode = false;
 let currentDotSize = 11;
 let currentDotOpacity = 50;
+let currentDotColor = "#1e293b";
 let currentDotExpanded = false;
 let pendingAnswerPayload = null;
 let lastAnswerPayload = null;
@@ -324,6 +325,7 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
         if (res.dotMode !== undefined) currentDotMode = !!res.dotMode;
         if (res.dotSize !== undefined) currentDotSize = Number(res.dotSize);
         if (res.dotOpacity !== undefined) currentDotOpacity = Number(res.dotOpacity);
+        if (res.dotColor) currentDotColor = String(res.dotColor);
         if (res.snipCursor) currentSnipCursor = res.snipCursor;
         if (res.customCursorUrl) currentCustomCursorUrl = res.customCursorUrl;
         if (res.snipDimming !== undefined) currentSnipDimming = Number(res.snipDimming);
@@ -361,6 +363,10 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
         }
         if (changes.dotOpacity !== undefined) {
           currentDotOpacity = Number(changes.dotOpacity.newValue);
+          applyDotOptics(document.getElementById("hs-dot-trigger"));
+        }
+        if (changes.dotColor !== undefined) {
+          currentDotColor = String(changes.dotColor.newValue || "#1e293b");
           applyDotOptics(document.getElementById("hs-dot-trigger"));
         }
         if (changes.hsDotPos) savedDotPos = changes.hsDotPos.newValue;
@@ -1726,13 +1732,14 @@ async function callAPI(b64, { forceStyle, customQuery } = {}) {
   let keys, style, models, subject, lastGood, autoSelect, globalApproach, subjectApproaches, quickApproach, dsaLanguage, dsaOptimize, dsaFormat;
   try {
     const data = await chrome.storage.local.get([
-      "keys", "style", "models", "subject", "lastGood", "autoSelect", "dotMode", "dotSize", "dotOpacity", "hsDotPos",
+      "keys", "style", "models", "subject", "lastGood", "autoSelect", "dotMode", "dotSize", "dotOpacity", "dotColor", "hsDotPos",
       "globalApproach", "subjectApproaches", "quickApproach",
       "dsaLanguage", "dsaOptimize", "dsaFormat"
     ]);
     if (data.dotMode !== undefined) currentDotMode = !!data.dotMode;
     if (data.dotSize !== undefined) currentDotSize = Number(data.dotSize);
     if (data.dotOpacity !== undefined) currentDotOpacity = Number(data.dotOpacity);
+    if (data.dotColor) currentDotColor = String(data.dotColor);
     if (data.hsDotPos) savedDotPos = data.hsDotPos;
 
     keys = data.keys;
@@ -2781,8 +2788,11 @@ function applyDotOptics(dotEl) {
   if (!dotEl) return;
   const size = typeof currentDotSize === "number" ? Math.max(0, currentDotSize) : 11;
   const op = typeof currentDotOpacity === "number" ? Math.max(0, Math.min(100, currentDotOpacity)) : 50;
+  const color = (currentDotColor && typeof currentDotColor === "string") ? currentDotColor : "#1e293b";
   dotEl.style.setProperty("--hs-dot-size", `${size}px`);
   dotEl.style.setProperty("--hs-dot-opacity", `${op / 100}`);
+  dotEl.style.setProperty("--hs-dot-color", color);
+  dotEl.style.background = color;
 }
 
 function showDotOverlay({ state = "solving", status = "Solving question...", pendingAnswer = null } = {}) {
@@ -2802,6 +2812,7 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
   let dot = document.getElementById("hs-dot-trigger");
   if (dot) {
     dot.style.display = "block";
+    applyDotOptics(dot);
   } else {
     dot = document.createElement("div");
     dot.id = "hs-dot-trigger";
@@ -2813,11 +2824,12 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
         #hs-dot-trigger {
           --hs-dot-size: 11px;
           --hs-dot-opacity: 0.5;
+          --hs-dot-color: #1e293b;
           position: fixed;
           width: var(--hs-dot-size);
           height: var(--hs-dot-size);
           border-radius: 50%;
-          background: #1e293b;
+          background: var(--hs-dot-color, #1e293b);
           opacity: var(--hs-dot-opacity);
           box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18), 0 1px 2px rgba(0, 0, 0, 0.2);
           z-index: 2147483647;
@@ -2827,7 +2839,7 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
           user-select: none;
           -webkit-user-select: none;
           transform: translateZ(0);
-          transition: opacity 0.2s ease, transform 0.15s ease, width 0.15s ease, height 0.15s ease;
+          transition: opacity 0.2s ease, transform 0.15s ease, width 0.15s ease, height 0.15s ease, background 0.15s ease;
         }
         #hs-dot-trigger::after {
           content: "";
@@ -2850,7 +2862,7 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
           opacity: calc(var(--hs-dot-opacity) + 0.4) !important;
         }
         #hs-dot-trigger.hs-dot-solving {
-          background: #1e293b;
+          background: var(--hs-dot-color, #1e293b);
           animation: hsDotSolvingPulse 1.4s infinite ease-in-out;
         }
         @keyframes hsDotSolvingPulse {
@@ -2858,11 +2870,11 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
           50% { opacity: var(--hs-dot-opacity); }
         }
         #hs-dot-trigger.hs-dot-ready {
-          background: #1e293b;
+          background: var(--hs-dot-color, #1e293b);
           opacity: var(--hs-dot-opacity);
         }
         #hs-dot-trigger.hs-dot-error {
-          background: #1e293b;
+          background: var(--hs-dot-color, #1e293b);
           opacity: calc(var(--hs-dot-opacity) * 0.8);
           animation: hsDotErrorShake 0.3s ease;
         }
@@ -2872,7 +2884,7 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
           75% { transform: translateX(2px); }
         }
         #hs-dot-trigger.hs-dot-stealth {
-          background: #1e293b !important;
+          background: var(--hs-dot-color, #1e293b) !important;
           opacity: calc(var(--hs-dot-opacity) * 0.5) !important;
           box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
           animation: none !important;
@@ -2928,9 +2940,7 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
             chrome.storage.local.set({ hsDotPos: savedDotPos });
           }
         } catch (err) {}
-      } else {
-        // Genuine click -> expand answer pop-up
-        expandAnswerFromDot();
+        setTimeout(() => { isDragging = false; }, 80);
       }
     };
 
@@ -2944,6 +2954,14 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
       initialTop = rect.top;
       window.addEventListener("mousemove", onMouseMove);
       window.addEventListener("mouseup", onMouseUp);
+    });
+
+    // Native click handler: consume event to prevent ghost-click leakage onto newly mounted overlay
+    dot.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isDragging) return;
+      expandAnswerFromDot();
     });
 
     // Right-click dismisses dot
@@ -2998,8 +3016,16 @@ function expandAnswerFromDot() {
   }
 }
 
+let lastToggleTimestamp = 0;
+
 // ── Toggle / Minimize & Restore via Alt+D Shortcut ──
 function toggleOverlayAndDot() {
+  const now = Date.now();
+  if (now - lastToggleTimestamp < 250) {
+    return; // Debounce guard: ignore duplicate calls within 250ms (prevents double-trigger from keydown + message)
+  }
+  lastToggleTimestamp = now;
+
   const overlay = document.getElementById("hs-answer-overlay");
   const dot = document.getElementById("hs-dot-trigger");
 
@@ -3012,36 +3038,40 @@ function toggleOverlayAndDot() {
     const payloadToKeep = lastAnswerPayload || pendingAnswerPayload;
     showDotOverlay({
       state: "ready",
-      status: "Answer minimized (Click or Alt+D to expand)",
+      status: "Answer minimized (Click dot or Alt+D to expand)",
       pendingAnswer: payloadToKeep
     });
     return;
   }
 
-  // State 2: Dot exists and is visible -> Hide dot completely
+  // State 2: Dot exists and is visible -> Hide dot completely (stealth mode)
   if (dot && dot.style.display !== "none" && !isDotHidden) {
     dot.style.display = "none";
     isDotHidden = true;
     return;
   }
 
-  // State 3: Dot exists and is hidden -> Reshow dot
+  // State 3: Dot exists and is hidden -> Restore Answer Overlay directly
   if (dot && isDotHidden) {
+    isDotHidden = false;
+    const payload = lastAnswerPayload || pendingAnswerPayload;
+    if (payload) {
+      dot.remove();
+      currentDotExpanded = true;
+      showAnswerOverlay(payload.answer, payload.options);
+      return;
+    }
     dot.style.display = "block";
     applyDotOptics(dot);
-    isDotHidden = false;
     return;
   }
 
-  // State 4: Neither overlay nor dot in DOM -> Recreate dot with last known answer
+  // State 4: Neither overlay nor dot in DOM -> Recreate overlay with last known answer (or dot if none)
   if (lastAnswerPayload || pendingAnswerPayload) {
     isDotHidden = false;
-    currentDotExpanded = false;
-    showDotOverlay({
-      state: "ready",
-      status: "Answer ready (Click or Alt+D to expand)",
-      pendingAnswer: lastAnswerPayload || pendingAnswerPayload
-    });
+    currentDotExpanded = true;
+    const payload = lastAnswerPayload || pendingAnswerPayload;
+    showAnswerOverlay(payload.answer, payload.options);
     return;
   }
 
