@@ -1,3 +1,33 @@
+### 🚀 Homework Solver v1.6.0 — Multimodal Search Bar, Multi-File & Terminal Exporter, & Snipping Hardening
+
+A high-speed, unobtrusive screen-snipping browser assistant for students, developers, and test-takers powered by Groq LPU vision inference (`qwen/qwen3.8-27b`).
+
+---
+
+### ⚡ Highlights & What's New in v1.6.0
+
+- **🔍 Top-Anchored Multimodal Search Bar**:
+  - Integrated multimodal search bar at the very top of the answer popup.
+  - Combines the user's active screen snip image with custom query text or README file context into a unified prompt for Groq vision models.
+  - Allows zero-shot re-refinements and contextual follow-ups without leaving the answer dialog.
+
+- **📑 Dynamic Multi-File Parser & Terminal CLI Exporter**:
+  - Intelligent detection and parsing of multi-file backend solutions (`parseMultiFiles`).
+  - Dual presentation modes:
+    - **Files View (`[ 📑 Files ]`)**: Displays clean individual file cards with target directory paths, language tags, and 1-click clipboard copy per file.
+    - **Terminal View (`[ 💻 Terminal ]`)**: Produces an automated Bash script (`generateTerminalScript`) with `mkdir -p` and `cat << 'EOF'` blocks for rapid shell pasting and automated workspace bootstrapping.
+
+- **📐 Indentation-Safe Formatting & Horizontal-Only Resizing**:
+  - Enhanced syntax-preserving tab and space normalizer (`sanitizeCodeFormatting`) prevents indentation corruption in Python, YAML, and nesting languages.
+  - Viewport-aware horizontal resizing (`resize: horizontal`) with contained vertical scrolling to keep answer popup dimensions compact and stable.
+
+- **⚡ Snipping Engine Hardening**:
+  - Resilient content script injection fallback in `background.js` and `popup.js` ensures snipping works seamlessly even on tabs opened prior to extension installation or reload.
+  - Elevated z-index stacking (`2147483640` - `2147483645`) prevents host website overlays and modals from swallowing snipping mouse events.
+  - Asynchronous capture synchronization eliminates null-image race conditions when dragging quickly.
+
+---
+
 ### 🚀 Homework Solver v1.5.0 — Deterministic Greedy Decoding (Temperature 0) & Code Only Engine
 
 A high-speed, unobtrusive screen-snipping browser assistant for students, developers, and test-takers powered by Groq LPU vision inference (`qwen/qwen3.8-27b`).

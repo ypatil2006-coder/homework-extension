@@ -26,8 +26,8 @@ chrome.runtime.onInstalled.addListener((details) => {
     if (chrome.action && chrome.action.setBadgeText) {
       chrome.action.setBadgeText({ text: "" });
     }
-    // Flag to show v1.5.0 notification toast on next active page
-    chrome.storage.local.set({ hs_just_updated: "1.5.0", hs_rate_limited_keys: {} });
+    // Flag to show v1.6.0 notification toast on next active page
+    chrome.storage.local.set({ hs_just_updated: "1.6.0", hs_rate_limited_keys: {} });
   }
   // Check for updates on extension installation or refresh
   checkForExtensionUpdates().catch(() => {});
@@ -44,11 +44,23 @@ chrome.commands.onCommand.addListener((command) => {
   if (command === "activate-snip") {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs && tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: "startSnip" }, () => {
+        const tabId = tabs[0].id;
+        chrome.tabs.sendMessage(tabId, { action: "startSnip" }, () => {
           if (chrome.runtime.lastError) {
             chrome.scripting.executeScript({
-              target: { tabId: tabs[0].id },
-              func: () => { window.dispatchEvent(new CustomEvent("hs-start-snip")); }
+              target: { tabId },
+              files: ["themes.js", "content.js"]
+            }, () => {
+              if (!chrome.runtime.lastError) {
+                chrome.tabs.sendMessage(tabId, { action: "startSnip" }, () => {
+                  if (chrome.runtime.lastError) {
+                    chrome.scripting.executeScript({
+                      target: { tabId },
+                      func: () => { window.dispatchEvent(new CustomEvent("hs-start-snip")); }
+                    }).catch(() => {});
+                  }
+                });
+              }
             });
           }
         });
@@ -62,7 +74,7 @@ chrome.commands.onCommand.addListener((command) => {
             chrome.scripting.executeScript({
               target: { tabId: tabs[0].id },
               func: () => { window.dispatchEvent(new CustomEvent("hs-close-overlay-and-dot")); }
-            });
+            }).catch(() => {});
           }
         });
       }
@@ -72,7 +84,14 @@ chrome.commands.onCommand.addListener((command) => {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "captureScreen") {
-    chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
+    const winId = (sender && sender.tab && sender.tab.windowId) ? sender.tab.windowId : null;
+    chrome.tabs.captureVisibleTab(winId, { format: "png" }, (dataUrl) => {
+      if (chrome.runtime.lastError || !dataUrl) {
+        chrome.tabs.captureVisibleTab(null, { format: "png" }, (fallbackUrl) => {
+          sendResponse({ dataUrl: fallbackUrl || null });
+        });
+        return;
+      }
       sendResponse({ dataUrl });
     });
     return true;

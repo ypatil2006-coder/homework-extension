@@ -43,15 +43,41 @@ document.getElementById("snipBtn").addEventListener("click", () => {
   saveQuickSettings();
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs && tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { action: "startSnip" }, () => {
+      const tabId = tabs[0].id;
+      let closed = false;
+      const doClose = () => {
+        if (!closed) {
+          closed = true;
+          try { window.close(); } catch (e) {}
+        }
+      };
+
+      chrome.tabs.sendMessage(tabId, { action: "startSnip" }, () => {
         if (chrome.runtime.lastError) {
           chrome.scripting.executeScript({
-            target: { tabId: tabs[0].id },
-            func: () => { window.dispatchEvent(new CustomEvent("hs-start-snip")); }
+            target: { tabId },
+            files: ["themes.js", "content.js"]
+          }, () => {
+            if (!chrome.runtime.lastError) {
+              chrome.tabs.sendMessage(tabId, { action: "startSnip" }, () => {
+                if (chrome.runtime.lastError) {
+                  chrome.scripting.executeScript({
+                    target: { tabId },
+                    func: () => { window.dispatchEvent(new CustomEvent("hs-start-snip")); }
+                  }).catch(() => {});
+                }
+                doClose();
+              });
+            } else {
+              doClose();
+            }
           });
+        } else {
+          doClose();
         }
       });
-      window.close();
+      // Fallback timeout to close popup if browser tab message lags
+      setTimeout(doClose, 800);
     }
   });
 });

@@ -14,6 +14,7 @@ if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
 let isSnipping = false;
 let startX, startY, selectionBox;
 let screenshotDataUrl = null;
+let capturePromise = null;
 let lastCroppedBase64 = (typeof sessionStorage !== "undefined") ? sessionStorage.getItem("hs_last_crop") : null;
 let savedOverlayPos = null;
 let savedDotPos = null;
@@ -483,19 +484,22 @@ function startSnipping() {
   removeExistingOverlay();
 
   isSnipping = true;
+  screenshotDataUrl = null;
 
-  try {
-    chrome.runtime.sendMessage({ action: "captureScreen" }, (res) => {
-      if (chrome.runtime.lastError) return;
-      if (res && res.dataUrl) {
+  capturePromise = new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage({ action: "captureScreen" }, (res) => {
+        if (chrome.runtime.lastError || !res || !res.dataUrl) {
+          resolve(null);
+          return;
+        }
         screenshotDataUrl = res.dataUrl;
-      }
-    });
-  } catch (e) {
-    alert("Extension context invalidated. Please refresh this page (F5).");
-    isSnipping = false;
-    return;
-  }
+        resolve(res.dataUrl);
+      });
+    } catch (e) {
+      resolve(null);
+    }
+  });
 
   const inp = activeSnipConfig.inpage;
 
@@ -508,7 +512,7 @@ function startSnipping() {
     position: fixed; top: 0; left: 0;
     width: 100vw; height: 100vh;
     background: ${overlayBg};
-    z-index: 999999; cursor: ${getSnipCursorCss()} !important;
+    z-index: 2147483640; cursor: ${getSnipCursorCss()} !important;
   `;
 
   const hint = document.createElement("div");
@@ -523,7 +527,7 @@ function startSnipping() {
     padding: 7px 20px; border-radius: 30px;
     font-size: 12.5px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-weight: 600;
-    z-index: 9999999; pointer-events: none;
+    z-index: 2147483645; pointer-events: none;
     user-select: none;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -549,7 +553,7 @@ function startSnipping() {
     border: ${selectionBorder};
     background: ${selectionFill};
     box-shadow: ${selectionGlow};
-    z-index: 9999998; pointer-events: none;
+    z-index: 2147483642; pointer-events: none;
     display: none;
     will-change: left, top, width, height;
     transform: translateZ(0);
@@ -576,14 +580,20 @@ function startSnipping() {
     clearTimeout(recaptureTimer);
     recaptureTimer = setTimeout(() => {
       if (!isContextValid()) return;
-      try {
-        chrome.runtime.sendMessage({ action: "captureScreen" }, (res) => {
-          if (chrome.runtime.lastError) return;
-          if (res && res.dataUrl) {
+      capturePromise = new Promise((resolve) => {
+        try {
+          chrome.runtime.sendMessage({ action: "captureScreen" }, (res) => {
+            if (chrome.runtime.lastError || !res || !res.dataUrl) {
+              resolve(null);
+              return;
+            }
             screenshotDataUrl = res.dataUrl;
-          }
-        });
-      } catch (err) {}
+            resolve(res.dataUrl);
+          });
+        } catch (err) {
+          resolve(null);
+        }
+      });
     }, 250);
   }, { passive: false });
 
@@ -674,7 +684,7 @@ function startSnipping() {
 }
 
 // ── Crop screenshot ────────────────────────────────
-function cropAndSolve(x1, y1, x2, y2) {
+async function cropAndSolve(x1, y1, x2, y2) {
   const dpr = window.devicePixelRatio || 1;
   let rawW = (x2 - x1) * dpr;
   let rawH = (y2 - y1) * dpr;
@@ -693,6 +703,27 @@ function cropAndSolve(x1, y1, x2, y2) {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
+  let dataUrl = screenshotDataUrl;
+  if (!dataUrl && capturePromise) {
+    dataUrl = await capturePromise;
+  }
+  if (!dataUrl) {
+    dataUrl = await new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ action: "captureScreen" }, (res) => {
+          resolve((res && res.dataUrl) || null);
+        });
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  if (!dataUrl) {
+    showAnswerOverlay("Could not capture screen. Please check tab permissions or refresh the page (F5).");
+    return;
+  }
+
   const img = new Image();
   img.onload = () => {
     ctx.drawImage(img,
@@ -710,7 +741,10 @@ function cropAndSolve(x1, y1, x2, y2) {
     } catch (e) {}
     callAPI(croppedBase64);
   };
-  img.src = screenshotDataUrl;
+  img.onerror = () => {
+    showAnswerOverlay("Failed to process captured image. Please try again.");
+  };
+  img.src = dataUrl;
 }
 
 const DEFAULT_GROQ_KEYS = "";
