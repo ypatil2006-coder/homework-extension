@@ -3694,6 +3694,57 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     keyBadge = `<div style="font-size: 9.5px; color: ${inp.overlayTextMuted}; margin-top: 6px; text-align: right; opacity: 0.85; font-family: 'JetBrains Mono', monospace;">⚡ ${escapeHtml(meta.provider)}: Key ${keyNum}/${total}${fbText}</div>`;
   }
 
+  const isStealth = !!currentAnswerStealthMode;
+
+  const getStylePillStyles = (pillStyle, activeStyle) => {
+    const isActive = (pillStyle === activeStyle);
+    if (isStealth) {
+      return {
+        bg: isActive ? "#111111" : "rgba(0, 0, 0, 0.03)",
+        color: isActive ? "#ffffff" : "#555555",
+        border: isActive ? "1.5px solid #111111" : "1px solid rgba(0, 0, 0, 0.22)",
+        weight: isActive ? "700" : "500",
+        shadow: isActive ? "0 1px 3px rgba(0, 0, 0, 0.2)" : "none"
+      };
+    }
+    return {
+      bg: isActive ? inp.buttonBg : "transparent",
+      color: isActive ? inp.buttonText : inp.overlayTextMuted,
+      border: isActive ? `1.5px solid ${inp.cardBorder}` : `1px solid ${colorWithAlpha(inp.cardBorder, 0.45)}`,
+      weight: isActive ? "700" : "500",
+      shadow: isActive ? "0 1px 3px rgba(0, 0, 0, 0.08)" : "none"
+    };
+  };
+
+  const mcqPill = getStylePillStyles("mcq", answerStyle);
+  const shortPill = getStylePillStyles("short", answerStyle);
+  const detailedPill = getStylePillStyles("detailed", answerStyle);
+
+  const styleGroupContainerStyle = isStealth
+    ? "display: flex; gap: 4px; padding: 2px; border-radius: 6px; background: rgba(0, 0, 0, 0.04); border: 1px solid rgba(0, 0, 0, 0.12);"
+    : "display: flex; gap: 4px;";
+
+  const settingLabelColor = isStealth ? "#000000" : inp.cardLabel;
+  const selectBoxStyle = isStealth
+    ? "width: 100%; padding: 5px 8px; font-size: 11.5px; border-radius: 5px; background: rgba(0, 0, 0, 0.04); color: #111111; border: 1px solid rgba(0, 0, 0, 0.28); outline: none; font-weight: 600; font-family: inherit;"
+    : `width: 100%; padding: 4px 7px; font-size: 11.5px; border-radius: 5px; background: ${inp.cardBg}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none; font-family: inherit;`;
+
+  const dynamicCardStyle = isStealth
+    ? "margin-bottom: 9px; padding: 8px 10px; border-radius: 0 6px 6px 0; background: rgba(0, 0, 0, 0.04); border-left: 3px solid #111111; display: none;"
+    : `margin-bottom: 9px; padding: 8px 10px; border-radius: 6px; background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; display: none;`;
+
+  const backBottomBtnStyle = isStealth
+    ? "padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid rgba(0, 0, 0, 0.25); background: transparent; color: #333333; cursor: pointer; font-family: inherit;"
+    : `padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.cardBorder}; background: transparent; color: ${inp.overlayTextMuted}; cursor: pointer; font-family: inherit;`;
+
+  const saveBtnStyle = isStealth
+    ? "flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 700; border-radius: 6px; border: 1px solid #111111; background: rgba(0, 0, 0, 0.06); color: #111111; cursor: pointer; font-family: inherit;"
+    : `flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;`;
+
+  const resolveBtnStyle = isStealth
+    ? "flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 700; border-radius: 6px; border: 1px solid #111111; background: #111111; color: #ffffff; cursor: pointer; font-family: inherit; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);"
+    : `flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;`;
+
   box.innerHTML = `
     <!-- HEADER BAR: Drag Handle, Title, Back Button, & Action Controls -->
     <div id="hs-popup-header" style="
@@ -3789,26 +3840,21 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     </div>
 
     <!-- QUICK SETTINGS VIEW (Zero cosmetic fluff, purely operational) -->
-    <div id="hs-settings-view" style="display: none; user-select: text; -webkit-user-select: text;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid ${colorWithAlpha(inp.cardBorder, 0.6)}; padding-bottom: 6px;">
-        <span style="font-size: 12.5px; font-weight: 700; color: ${inp.cardLabel};">⚙ Quick Settings</span>
-        <button id="hs-btn-back-solution" style="padding: 2px 8px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">← Back to Solution</button>
-      </div>
-
+    <div id="hs-settings-view" style="display: none; user-select: text; -webkit-user-select: text; padding-top: 2px;">
       <!-- 1. Answer Style -->
       <div style="margin-bottom: 9px;">
-        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${inp.cardLabel}; margin-bottom: 4px; letter-spacing: 0.5px;">Answer Style</label>
-        <div id="hs-setting-style-group" style="display: flex; gap: 4px;">
-          <button type="button" class="hs-setting-style-pill" data-style="mcq" style="flex: 1; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${(answerStyle === 'mcq') ? inp.buttonBg : 'transparent'}; color: ${(answerStyle === 'mcq') ? inp.buttonText : inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">MCQ</button>
-          <button type="button" class="hs-setting-style-pill" data-style="short" style="flex: 1; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${(answerStyle === 'short') ? inp.buttonBg : 'transparent'}; color: ${(answerStyle === 'short') ? inp.buttonText : inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">Short</button>
-          <button type="button" class="hs-setting-style-pill" data-style="detailed" style="flex: 1; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${(answerStyle === 'detailed') ? inp.buttonBg : 'transparent'}; color: ${(answerStyle === 'detailed') ? inp.buttonText : inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">💻 Code Only</button>
+        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${settingLabelColor}; margin-bottom: 4px; letter-spacing: 0.5px;">Answer Style</label>
+        <div id="hs-setting-style-group" style="${styleGroupContainerStyle}">
+          <button type="button" class="hs-setting-style-pill" data-style="mcq" style="flex: 1; padding: 5px 6px; font-size: 11px; border-radius: 4px; border: ${mcqPill.border}; background: ${mcqPill.bg}; color: ${mcqPill.color}; font-weight: ${mcqPill.weight}; box-shadow: ${mcqPill.shadow}; cursor: pointer; font-family: inherit; transition: all 0.12s ease;">MCQ</button>
+          <button type="button" class="hs-setting-style-pill" data-style="short" style="flex: 1; padding: 5px 6px; font-size: 11px; border-radius: 4px; border: ${shortPill.border}; background: ${shortPill.bg}; color: ${shortPill.color}; font-weight: ${shortPill.weight}; box-shadow: ${shortPill.shadow}; cursor: pointer; font-family: inherit; transition: all 0.12s ease;">Short</button>
+          <button type="button" class="hs-setting-style-pill" data-style="detailed" style="flex: 1; padding: 5px 6px; font-size: 11px; border-radius: 4px; border: ${detailedPill.border}; background: ${detailedPill.bg}; color: ${detailedPill.color}; font-weight: ${detailedPill.weight}; box-shadow: ${detailedPill.shadow}; cursor: pointer; font-family: inherit; transition: all 0.12s ease;">💻 Code Only</button>
         </div>
       </div>
 
       <!-- 2. Subject Persona -->
       <div style="margin-bottom: 9px;">
-        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${inp.cardLabel}; margin-bottom: 4px; letter-spacing: 0.5px;">Subject Domain</label>
-        <select id="hs-setting-subject" style="width: 100%; padding: 4px 7px; font-size: 11.5px; border-radius: 5px; background: ${inp.cardBg}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none; font-family: inherit;">
+        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${settingLabelColor}; margin-bottom: 4px; letter-spacing: 0.5px;">Subject Domain</label>
+        <select id="hs-setting-subject" style="${selectBoxStyle}">
           <option value="auto" ${currentQuickSettings.subject === 'auto' ? 'selected' : ''}>Auto / Academic General</option>
           <option value="dsa" ${currentQuickSettings.subject === 'dsa' ? 'selected' : ''}>DSA & Algorithms</option>
           <option value="backend-dev" ${currentQuickSettings.subject === 'backend-dev' ? 'selected' : ''}>Backend Systems & Multi-File</option>
@@ -3820,12 +3866,12 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
       </div>
 
       <!-- 3. Dynamic Subject Context Card -->
-      <div id="hs-dynamic-subject-card" style="margin-bottom: 9px; padding: 8px 10px; border-radius: 6px; background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; display: none;"></div>
+      <div id="hs-dynamic-subject-card" style="${dynamicCardStyle}"></div>
 
       <!-- 4. Reasoning Engine (Approach) -->
       <div style="margin-bottom: 9px;">
-        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${inp.cardLabel}; margin-bottom: 4px; letter-spacing: 0.5px;">Reasoning Engine</label>
-        <select id="hs-setting-approach" style="width: 100%; padding: 4px 7px; font-size: 11.5px; border-radius: 5px; background: ${inp.cardBg}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none; font-family: inherit;">
+        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${settingLabelColor}; margin-bottom: 4px; letter-spacing: 0.5px;">Reasoning Engine</label>
+        <select id="hs-setting-approach" style="${selectBoxStyle}">
           <option value="normal" ${currentQuickSettings.globalApproach === 'normal' ? 'selected' : ''}>Normal Single-Pass (~1.2s)</option>
           <option value="parallel-dual" ${currentQuickSettings.globalApproach === 'parallel-dual' ? 'selected' : ''}>⚡ Parallel Dual-Key Consensus (~1.5s)</option>
           <option value="sequential-3stage" ${currentQuickSettings.globalApproach === 'sequential-3stage' ? 'selected' : ''}>🧠 Deep Sequential 3-Stage Pipeline</option>
@@ -3834,15 +3880,15 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
 
       <!-- 5. Auto-Select on Webpage DOM -->
       <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 7px;">
-        <input type="checkbox" id="hs-setting-autoselect" ${currentQuickSettings.autoSelect ? 'checked' : ''} style="cursor: pointer; width: 14px; height: 14px;">
-        <label for="hs-setting-autoselect" style="font-size: 11.5px; cursor: pointer; color: ${inp.cardValue}; user-select: none;">Auto-click detected MCQ/MSQ option on page</label>
+        <input type="checkbox" id="hs-setting-autoselect" ${currentQuickSettings.autoSelect ? 'checked' : ''} style="cursor: pointer; width: 14px; height: 14px; ${isStealth ? 'accent-color: #111111;' : ''}">
+        <label for="hs-setting-autoselect" style="font-size: 11.5px; cursor: pointer; color: ${isStealth ? '#111111' : inp.cardValue}; font-weight: ${isStealth ? '600' : 'normal'}; user-select: none;">Auto-click detected MCQ/MSQ option on page</label>
       </div>
 
       <!-- Actions -->
       <div style="display: flex; gap: 6px; margin-top: 12px; align-items: center;">
-        <button id="hs-setting-back-bottom-btn" style="padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.cardBorder}; background: transparent; color: ${inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">← Back</button>
-        <button id="hs-setting-save-btn" style="flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">💾 Save Settings</button>
-        <button id="hs-setting-resolve-btn" style="flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">🔄 Save & Re-Solve</button>
+        <button id="hs-setting-back-bottom-btn" style="${backBottomBtnStyle}">← Back</button>
+        <button id="hs-setting-save-btn" style="${saveBtnStyle}">💾 Save Settings</button>
+        <button id="hs-setting-resolve-btn" style="${resolveBtnStyle}">🔄 Save & Re-Solve</button>
       </div>
       <div id="hs-setting-status" style="font-size: 10.5px; color: ${inp.badgeSuccess}; margin-top: 6px; text-align: center; min-height: 16px;"></div>
     </div>
