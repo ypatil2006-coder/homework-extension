@@ -15,7 +15,10 @@ A high-speed, unobtrusive screen-snipping browser assistant for students, develo
   - Allows zero-shot re-refinements and contextual follow-ups ("Solve in C++", "Explain step 3", etc.) without leaving the answer dialog.
 
 - **📁 Dynamic Multi-File Backend Parser & 1-Click Terminal Script Exporter**:
-  - Intelligent detection and parsing of multi-file backend solutions (`parseMultiFiles`) using standard delimiters (`### FILE: <path>`).
+  - Intelligent detection and parsing of multi-file backend solutions (`parseMultiFiles`) using standard delimiters (`### FILE: <path>`) as well as raw bash `cat << 'EOF'` blocks.
+  - **Project Root Auto-Navigation**: Terminal scripts automatically locate and `cd` into the project root even if executed from nested subdirectories.
+  - **Quick Copy Button (`[ ⚡ 1-Shot Cmd ]`)**: 1-click button directly in the files header copies the full Bash script ready to paste in your IDE terminal.
+  - **Strict No-Prose Contract**: Backend persona decomposes file tree from screenshots/README and outputs 100% executable files with zero conversational filler.
   - Dual presentation modes:
     - **Files View (`[ 📑 Files ]`)**: Displays clean individual file cards with target directory paths, language tags, and 1-click clipboard copy per file.
     - **Terminal View (`[ 💻 Terminal ]`)**: Produces an automated Bash script (`generateTerminalScript`) with `mkdir -p` and `cat << 'EOF'` blocks for rapid shell pasting and automated workspace bootstrapping directly inside VS Code or terminal.
