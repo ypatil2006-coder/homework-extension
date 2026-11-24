@@ -1,27 +1,51 @@
-### 🚀 Homework Solver v1.6.0 — Multimodal Search Bar, Multi-File & Terminal Exporter, & Snipping Hardening
+### 🚀 Homework Solver v1.6.0-beta.1 — Early Access (Beta)
+
+> ⚠️ **EARLY ACCESS / BETA NOTICE**:
+> This is an **Early Access Beta** release with major UI, architectural, and engine upgrades. While extensively tested, unexpected bugs may occur. **Please report any bugs or visual glitches as soon as possible** via [GitHub Issues](https://github.com/ypatil2006-coder/homework-extension/issues) so they can be addressed immediately!
 
 A high-speed, unobtrusive screen-snipping browser assistant for students, developers, and test-takers powered by Groq LPU vision inference (`qwen/qwen3.8-27b`).
 
 ---
 
-### ⚡ Highlights & What's New in v1.6.0
+### ⚡ Highlights & What's New in v1.6.0-beta.1 (Early Access)
 
-- **🔍 Top-Anchored Multimodal Search Bar**:
+- **🔍 Top-Anchored Multimodal Search Bar & Context Box**:
   - Integrated multimodal search bar at the very top of the answer popup.
   - Combines the user's active screen snip image with custom query text or README file context into a unified prompt for Groq vision models.
-  - Allows zero-shot re-refinements and contextual follow-ups without leaving the answer dialog.
+  - Allows zero-shot re-refinements and contextual follow-ups ("Solve in C++", "Explain step 3", etc.) without leaving the answer dialog.
 
-- **📑 Dynamic Multi-File Parser & Terminal CLI Exporter**:
-  - Intelligent detection and parsing of multi-file backend solutions (`parseMultiFiles`).
+- **📁 Dynamic Multi-File Backend Parser & 1-Click Terminal Script Exporter**:
+  - Intelligent detection and parsing of multi-file backend solutions (`parseMultiFiles`) using standard delimiters (`### FILE: <path>`).
   - Dual presentation modes:
     - **Files View (`[ 📑 Files ]`)**: Displays clean individual file cards with target directory paths, language tags, and 1-click clipboard copy per file.
-    - **Terminal View (`[ 💻 Terminal ]`)**: Produces an automated Bash script (`generateTerminalScript`) with `mkdir -p` and `cat << 'EOF'` blocks for rapid shell pasting and automated workspace bootstrapping.
+    - **Terminal View (`[ 💻 Terminal ]`)**: Produces an automated Bash script (`generateTerminalScript`) with `mkdir -p` and `cat << 'EOF'` blocks for rapid shell pasting and automated workspace bootstrapping directly inside VS Code or terminal.
+
+- **⚙️ In-Popup Operational Quick Settings**:
+  - Direct 1-click gear icon (`⚙`) in the header opens operational controls inside the active answer popup:
+    - **Answer Style**: Instant toggle between MCQ, Short, and 💻 Code Only.
+    - **Subject Domain Persona**: Switch between DSA & Algorithms, Backend Systems, Quantitative Aptitude, Probability & Statistics, AI for Finance, and Verbal.
+    - **Reasoning Engine**: Switch between Normal Single-Pass (~1.2s), ⚡ Parallel Dual-Key Consensus (~1.5s), and 🧠 Deep Sequential 3-Stage Pipeline.
+    - **DOM Auto-Selection**: Toggle auto-clicking detected MCQ/MSQ options on active web pages.
+
+- **⌨️ 3-State Floating Dot Cycling (Alt+D Shortcut)**:
+  - Smart state cycling for the discreet floating dot:
+    - **State 1 (Window open)**: Pressing <kbd>Alt+D</kbd> minimizes the overlay to a subtle floating dot on the screen.
+    - **State 2 (Dot visible)**: Pressing <kbd>Alt+D</kbd> completely hides the dot for zero screen visibility.
+    - **State 3 (Dot hidden)**: Pressing <kbd>Alt+D</kbd> immediately reshows the dot with your answer preserved.
+
+- **↩️ Universal Multi-Point Back Navigation & Answer History Stack**:
+  - Never get trapped in a view again! Full multi-point back navigation across all modes:
+    - **Header**: `[← Previous Answer]` back button in `#hs-popup-header`.
+    - **Top Banner**: Dedicated follow-up return bar `#hs-history-nav` with `[← Back to Previous Answer]`.
+    - **Bottom Card Action**: `[← Back to Previous Solution]` action button on code derivation cards.
+    - **Live Streaming & Loading States**: Real-time `[← Back]` buttons inside `#hs-stream-back-btn` and `#hs-loading-back-btn` allow instant cancellation or return while tokens are generating.
 
 - **📐 Indentation-Safe Formatting & Horizontal-Only Resizing**:
-  - Enhanced syntax-preserving tab and space normalizer (`sanitizeCodeFormatting`) prevents indentation corruption in Python, YAML, and nesting languages.
+  - Enhanced syntax-preserving tab and space normalizer (`sanitizeCodeFormatting`) guarantees 4-space column 0 indentation in Python, Java, JavaScript, and YAML.
   - Viewport-aware horizontal resizing (`resize: horizontal`) with contained vertical scrolling to keep answer popup dimensions compact and stable.
 
-- **⚡ Snipping Engine Hardening**:
+- **⚡ Snipping Engine Hardening & SSE Stream Sentinel Fix**:
+  - Fixed service worker SSE stream hang by recognizing `data: [DONE]` sentinel token to terminate streaming readers immediately.
   - Resilient content script injection fallback in `background.js` and `popup.js` ensures snipping works seamlessly even on tabs opened prior to extension installation or reload.
   - Elevated z-index stacking (`2147483640` - `2147483645`) prevents host website overlays and modals from swallowing snipping mouse events.
   - Asynchronous capture synchronization eliminates null-image race conditions when dragging quickly.
