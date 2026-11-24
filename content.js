@@ -1,15 +1,25 @@
 window.addEventListener("hs-start-snip", () => startSnipping());
-window.addEventListener("hs-close-overlay-and-dot", () => removeExistingOverlay());
+window.addEventListener("hs-close-overlay-and-dot", () => toggleOverlayAndDot());
 
 if (typeof chrome !== "undefined" && chrome.runtime?.onMessage) {
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.action === "startSnip") {
       startSnipping();
     } else if (msg.action === "closeOverlayAndDot") {
-      removeExistingOverlay();
+      toggleOverlayAndDot();
     }
   });
 }
+
+// In-page fallback keyboard handler for Alt+D (Minimize/Toggle Floating Dot)
+window.addEventListener("keydown", (e) => {
+  if (e.altKey && (e.key === "d" || e.key === "D")) {
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+    if (tag === "input" || tag === "textarea") return;
+    e.preventDefault();
+    toggleOverlayAndDot();
+  }
+});
 
 let isSnipping = false;
 let startX, startY, selectionBox;
@@ -23,6 +33,9 @@ let currentDotSize = 11;
 let currentDotOpacity = 50;
 let currentDotExpanded = false;
 let pendingAnswerPayload = null;
+let lastAnswerPayload = null;
+let answerHistory = [];
+let isDotHidden = false;
 let lastLoadingStatus = "Solving question...";
 
 let currentSnipCursor = "crosshair";
@@ -485,6 +498,8 @@ function startSnipping() {
 
   isSnipping = true;
   screenshotDataUrl = null;
+  answerHistory = [];
+  isDotHidden = false;
 
   capturePromise = new Promise((resolve) => {
     try {
@@ -2674,8 +2689,16 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
     oldBox.remove();
   }
 
+  if (pendingAnswer) {
+    pendingAnswerPayload = pendingAnswer;
+    lastAnswerPayload = pendingAnswer;
+  }
+  isDotHidden = false;
+
   let dot = document.getElementById("hs-dot-trigger");
-  if (!dot) {
+  if (dot) {
+    dot.style.display = "block";
+  } else {
     dot = document.createElement("div");
     dot.id = "hs-dot-trigger";
 
@@ -2852,6 +2875,7 @@ function showDotOverlay({ state = "solving", status = "Solving question...", pen
 
 function expandAnswerFromDot() {
   currentDotExpanded = true;
+  isDotHidden = false;
   const dot = document.getElementById("hs-dot-trigger");
   if (dot) {
     const rect = dot.getBoundingClientRect();
@@ -2862,13 +2886,68 @@ function expandAnswerFromDot() {
     dot.remove();
   }
 
-  if (pendingAnswerPayload) {
-    const payload = pendingAnswerPayload;
-    pendingAnswerPayload = null;
+  const payload = pendingAnswerPayload || lastAnswerPayload;
+  if (payload) {
     showAnswerOverlay(payload.answer, payload.options);
   } else {
     showLoadingOverlay(lastLoadingStatus || "Solving question...");
   }
+}
+
+// ── Toggle / Minimize & Restore via Alt+D Shortcut ──
+function toggleOverlayAndDot() {
+  const overlay = document.getElementById("hs-answer-overlay");
+  const dot = document.getElementById("hs-dot-trigger");
+
+  // State 1: Answer Overlay is currently visible -> Minimize to floating dot
+  if (overlay && overlay.style.display !== "none") {
+    saveCurrentOverlayPosition(overlay);
+    overlay.remove();
+    currentDotExpanded = false;
+    isDotHidden = false;
+    const payloadToKeep = lastAnswerPayload || pendingAnswerPayload;
+    showDotOverlay({
+      state: "ready",
+      status: "Answer minimized (Click or Alt+D to expand)",
+      pendingAnswer: payloadToKeep
+    });
+    return;
+  }
+
+  // State 2: Dot exists and is visible -> Hide dot completely
+  if (dot && dot.style.display !== "none" && !isDotHidden) {
+    dot.style.display = "none";
+    isDotHidden = true;
+    return;
+  }
+
+  // State 3: Dot exists and is hidden -> Reshow dot
+  if (dot && isDotHidden) {
+    dot.style.display = "block";
+    applyDotOptics(dot);
+    isDotHidden = false;
+    return;
+  }
+
+  // State 4: Neither overlay nor dot in DOM -> Recreate dot with last known answer
+  if (lastAnswerPayload || pendingAnswerPayload) {
+    isDotHidden = false;
+    currentDotExpanded = false;
+    showDotOverlay({
+      state: "ready",
+      status: "Answer ready (Click or Alt+D to expand)",
+      pendingAnswer: lastAnswerPayload || pendingAnswerPayload
+    });
+    return;
+  }
+
+  // State 5: Fallback idle dot
+  isDotHidden = false;
+  showDotOverlay({
+    state: "ready",
+    status: "Homework Solver (Alt+C to snip)",
+    pendingAnswer: null
+  });
 }
 
 // ── Loading overlay ────────────────────────────────
@@ -3157,6 +3236,9 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
 
   const cleanAnswer = stripThinkTags(answer);
   const answerStyle = style || "detailed";
+  lastAnswerPayload = { answer, options: { style: answerStyle, truncated, autoSelect, meta, isDerivation } };
+  pendingAnswerPayload = { answer, options: { style: answerStyle, truncated, autoSelect, meta, isDerivation } };
+  isDotHidden = false;
 
   const inp = getAnswerEffectiveInp();
   const box = document.createElement("div");
@@ -3230,9 +3312,12 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
 
         <div id="hs-terminal-container" style="display: none;">
           <div class="hs-card" style="background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; border-radius: 0 8px 8px 0; padding: 7px 10px; margin-bottom: 6px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
               <span style="font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 600; color: ${inp.cardLabel};">💻 IDE Terminal Script (One-Shot)</span>
-              <button id="hs-copy-terminal-btn" data-script="${escapeHtml(termScript)}" style="background: transparent; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.5)}; border-radius: 4px; padding: 2px 6px; font-size: 9.5px; cursor: pointer; color: ${inp.cardLabel}; font-family: inherit;">📋 Copy Script</button>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <button id="hs-terminal-back-btn" style="background: ${colorWithAlpha(inp.cardBg, 0.8)}; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.6)}; border-radius: 4px; padding: 2px 7px; font-size: 9.5px; cursor: pointer; color: ${inp.cardLabel}; font-family: inherit;">← Back to Files</button>
+                <button id="hs-copy-terminal-btn" data-script="${escapeHtml(termScript)}" style="background: transparent; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.5)}; border-radius: 4px; padding: 2px 6px; font-size: 9.5px; cursor: pointer; color: ${inp.cardLabel}; font-family: inherit;">📋 Copy Script</button>
+              </div>
             </div>
             <pre style="margin: 0; font-family: 'JetBrains Mono', Consolas, monospace; font-size: ${currentAnswerFontSize - 1}px; line-height: 1.38; white-space: pre; overflow-x: auto; word-break: normal; color: ${inp.cardValue}; tab-size: 4;">${escapeHtml(termScript)}</pre>
           </div>
@@ -3416,35 +3501,63 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   }
 
   box.innerHTML = `
-    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 105px; height: 26px; cursor: grab; z-index: 5; display: ${currentAnswerDragBar ? 'block' : 'none'};"></div>
-    <div style="position: absolute; top: 2px; right: 2px; display: flex; align-items: center; gap: 2px; z-index: 10;">
-      <button id="hs-settings-btn" title="Quick Settings (Operational Only)" style="
-        width: 32px; height: 32px;
-        background: transparent; color: ${inp.overlayTextMuted}; border: none;
-        cursor: pointer; font-size: 14px; line-height: 1;
-        display: flex; align-items: center; justify-content: center;
-        padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: opacity 0.12s ease, transform 0.1s ease;
-      ">⚙</button>
-      <button id="hs-copy" title="Copy clean answer" style="
-        width: 32px; height: 32px;
-        background: transparent; color: ${inp.overlayTextMuted}; border: none;
-        cursor: pointer; font-size: 14px; line-height: 1;
-        display: flex; align-items: center; justify-content: center;
-        padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: opacity 0.12s ease, transform 0.1s ease;
-      ">⎘</button>
-      <button id="hs-close" title="Close" style="
-        width: 32px; height: 32px;
-        background: transparent; color: ${inp.overlayTextMuted}; border: none;
-        cursor: pointer; font-size: 13px; font-weight: 600; line-height: 1;
-        display: flex; align-items: center; justify-content: center;
-        padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: opacity 0.12s ease, transform 0.1s ease;
-      ">✕</button>
+    <!-- HEADER BAR: Drag Handle, Title, Back Button, & Action Controls -->
+    <div id="hs-popup-header" style="
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px; padding-bottom: 6px;
+      border-bottom: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)};
+      user-select: none; gap: 6px;
+    ">
+      <div id="hs-header-left" style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+        <div id="hs-drag-bar" style="
+          display: ${currentAnswerDragBar ? 'flex' : 'none'};
+          align-items: center; gap: 4px; cursor: grab; padding: 2px 6px; border-radius: 4px;
+          background: ${colorWithAlpha(inp.cardBg, 0.6)}; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.4)};
+          font-size: 10px; font-weight: 700; color: ${inp.cardLabel}; letter-spacing: 0.3px;
+        ">
+          <span style="opacity: 0.6; font-size: 11px;">⠿</span>
+          <span id="hs-header-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${multiFiles.length > 0 ? '📁 Backend Suite' : answerStyle === 'detailed' ? '💻 Code Solution' : '⚡ Homework Solver'}</span>
+        </div>
+        <button id="hs-header-back-btn" title="Back" style="
+          display: none; align-items: center; gap: 3px;
+          padding: 2px 8px; font-size: 10.5px; font-weight: 600; font-family: inherit;
+          border-radius: 4px; border: 1px solid ${inp.cardBorder};
+          background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer;
+        ">← Back</button>
+      </div>
+
+      <div id="hs-header-controls" style="display: flex; align-items: center; gap: 3px; flex-shrink: 0;">
+        <button id="hs-settings-btn" title="Quick Settings (Operational Only)" style="
+          width: 26px; height: 26px; background: transparent; color: ${inp.overlayTextMuted};
+          border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)}; border-radius: 5px;
+          cursor: pointer; font-size: 12.5px; display: flex; align-items: center; justify-content: center;
+          padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: all 0.12s ease;
+        ">⚙</button>
+        <button id="hs-copy" title="Copy clean answer" style="
+          width: 26px; height: 26px; background: transparent; color: ${inp.overlayTextMuted};
+          border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)}; border-radius: 5px;
+          cursor: pointer; font-size: 12.5px; display: flex; align-items: center; justify-content: center;
+          padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: all 0.12s ease;
+        ">⎘</button>
+        <button id="hs-minimize" title="Minimize to Floating Dot (Alt+D)" style="
+          width: 26px; height: 26px; background: transparent; color: ${inp.overlayTextMuted};
+          border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)}; border-radius: 5px;
+          cursor: pointer; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+          padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: all 0.12s ease;
+        ">—</button>
+        <button id="hs-close" title="Close" style="
+          width: 26px; height: 26px; background: transparent; color: ${inp.overlayTextMuted};
+          border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)}; border-radius: 5px;
+          cursor: pointer; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+          padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: all 0.12s ease;
+        ">✕</button>
+      </div>
     </div>
 
     <!-- NORMAL SOLUTION VIEW -->
-    <div id="hs-solution-view" style="padding-top: 4px; padding-right: 28px; user-select: text; -webkit-user-select: text;">
-      <!-- TOP-ANCHORED MULTIMODAL SEARCH BAR -->
-      <div id="hs-top-search-bar" style="margin-bottom: 9px; display: flex; gap: 6px; align-items: flex-start;">
+    <div id="hs-solution-view" style="user-select: text; -webkit-user-select: text;">
+      <!-- TOP-ANCHORED MULTIMODAL SEARCH BAR (Clean full width row) -->
+      <div id="hs-top-search-bar" style="margin-bottom: 8px; display: flex; gap: 6px; align-items: center; width: 100%; box-sizing: border-box;">
         <textarea id="hs-search-input" rows="1" placeholder="Paste README context or ask follow-up ('Solve in C++', etc.)..." style="
           flex: 1; min-height: 28px; max-height: 120px; resize: none; overflow-y: auto;
           padding: 5px 9px; font-family: inherit; font-size: 11.5px; line-height: 1.35;
@@ -3459,6 +3572,19 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
         ">➔</button>
       </div>
 
+      <!-- History Back Navigation (if user previously had another answer) -->
+      ${answerHistory.length > 0 ? `
+        <div id="hs-history-nav" style="margin-bottom: 7px; display: flex; align-items: center; justify-content: space-between; background: ${colorWithAlpha(inp.cardBg, 0.7)}; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.5)}; border-radius: 5px; padding: 3px 8px;">
+          <span style="font-size: 10px; color: ${inp.cardLabel}; font-weight: 600;">↩ Follow-up view</span>
+          <button id="hs-btn-back-history" style="
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 7px; font-size: 10px; font-weight: 600; border-radius: 4px;
+            border: 1px solid ${inp.cardBorder}; background: ${inp.buttonBg};
+            color: ${inp.buttonText}; cursor: pointer; font-family: inherit;
+          ">← Back to Previous Answer</button>
+        </div>
+      ` : ''}
+
       <!-- SOLUTION CONTENT BODY -->
       <div id="hs-solution-body">
         ${formattedHtml}
@@ -3469,10 +3595,10 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     </div>
 
     <!-- QUICK SETTINGS VIEW (Zero cosmetic fluff, purely operational) -->
-    <div id="hs-settings-view" style="display: none; padding-top: 4px; padding-right: 28px; user-select: text; -webkit-user-select: text;">
+    <div id="hs-settings-view" style="display: none; user-select: text; -webkit-user-select: text;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid ${colorWithAlpha(inp.cardBorder, 0.6)}; padding-bottom: 6px;">
         <span style="font-size: 12.5px; font-weight: 700; color: ${inp.cardLabel};">⚙ Quick Settings</span>
-        <button id="hs-btn-back-solution" style="padding: 2px 8px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">← Back</button>
+        <button id="hs-btn-back-solution" style="padding: 2px 8px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">← Back to Solution</button>
       </div>
 
       <!-- 1. Answer Style -->
@@ -3520,6 +3646,7 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
 
       <!-- Actions -->
       <div style="display: flex; gap: 6px; margin-top: 12px; align-items: center;">
+        <button id="hs-setting-back-bottom-btn" style="padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.cardBorder}; background: transparent; color: ${inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">← Back</button>
         <button id="hs-setting-save-btn" style="flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">💾 Save Settings</button>
         <button id="hs-setting-resolve-btn" style="flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">🔄 Save & Re-Solve</button>
       </div>
@@ -3530,8 +3657,12 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
       #hs-answer-overlay::-webkit-scrollbar { width: 4px !important; background: transparent !important; }
       #hs-answer-overlay::-webkit-scrollbar-thumb { background: ${colorWithAlpha(inp.overlayTextMuted, 0.4)} !important; border-radius: 4px !important; }
       #hs-answer-overlay::-webkit-scrollbar-thumb:hover { background: ${colorWithAlpha(inp.overlayTextMuted, 0.7)} !important; }
-      #hs-settings-btn:hover, #hs-copy:hover, #hs-close:hover { opacity: 1 !important; }
-      #hs-settings-btn:active, #hs-copy:active, #hs-close:active { transform: scale(0.88); }
+      #hs-settings-btn:hover, #hs-copy:hover, #hs-minimize:hover, #hs-close:hover {
+        background: ${colorWithAlpha(inp.cardBorder, 0.25)} !important;
+        color: ${inp.overlayTextPrimary} !important;
+        opacity: 1 !important;
+      }
+      #hs-settings-btn:active, #hs-copy:active, #hs-minimize:active, #hs-close:active { transform: scale(0.92); }
       #hs-expand-step:hover { filter: brightness(1.08); }
       #hs-expand-step:active { transform: scale(0.96); }
     </style>
@@ -3544,6 +3675,14 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   const closeBtn = document.getElementById("hs-close");
   if (closeBtn) {
     closeBtn.onclick = removeExistingOverlay;
+  }
+
+  const minBtn = document.getElementById("hs-minimize");
+  if (minBtn) {
+    minBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleOverlayAndDot();
+    };
   }
 
   const expandBtn = document.getElementById("hs-expand-step");
@@ -3565,6 +3704,10 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     expandBtn.onclick = () => {
       const cropToUse = lastCroppedBase64 || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hs_last_crop") : null);
       if (!cropToUse) return;
+      answerHistory.push({
+        answer: cleanAnswer,
+        options: { style: answerStyle, truncated, autoSelect, meta, isDerivation }
+      });
       showLoadingOverlay("Generating pure code solution...");
       callAPI(cropToUse, { forceStyle: "detailed" });
     };
@@ -3642,6 +3785,15 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     };
   }
 
+  // Back to Files button inside terminal view
+  const termBackBtn = box.querySelector("#hs-terminal-back-btn");
+  if (termBackBtn && btnViewFiles) {
+    termBackBtn.onclick = (e) => {
+      e.stopPropagation();
+      btnViewFiles.click();
+    };
+  }
+
   // Persistent horizontal resize observer
   if (typeof ResizeObserver !== "undefined") {
     let roTimer = null;
@@ -3716,9 +3868,25 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
       showAnswerOverlay("⚠️ No image crop found in memory to combine with this query. Please capture an image first.");
       return;
     }
+    answerHistory.push({
+      answer: cleanAnswer,
+      options: { style: answerStyle, truncated, autoSelect, meta, isDerivation }
+    });
     showLoadingOverlay("Refining with README / custom query…");
     callAPI(activeCrop, { customQuery: query });
   };
+
+  // Wire History Back Button (Return to previous answer before follow-up/code expansion)
+  const histBackBtn = box.querySelector("#hs-btn-back-history");
+  if (histBackBtn) {
+    histBackBtn.onclick = (e) => {
+      e.stopPropagation();
+      const prev = answerHistory.pop();
+      if (prev) {
+        showAnswerOverlay(prev.answer, prev.options);
+      }
+    };
+  }
 
   if (searchInput) {
     searchInput.addEventListener("input", () => {
@@ -3810,6 +3978,13 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     if (show) {
       if (solView) solView.style.display = "none";
       if (setView) setView.style.display = "block";
+      const headerTitle = box.querySelector("#hs-header-title");
+      if (headerTitle) headerTitle.innerText = "⚙ Quick Settings";
+      const headerBackBtn = box.querySelector("#hs-header-back-btn");
+      if (headerBackBtn) {
+        headerBackBtn.style.display = "inline-flex";
+        headerBackBtn.innerText = "← Back to Solution";
+      }
       if (settingsBtn) {
         settingsBtn.style.opacity = "1";
         settingsBtn.style.color = inp.buttonText || "#3b82f6";
@@ -3818,6 +3993,19 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     } else {
       if (solView) solView.style.display = "block";
       if (setView) setView.style.display = "none";
+      const headerTitle = box.querySelector("#hs-header-title");
+      if (headerTitle) {
+        headerTitle.innerText = multiFiles.length > 0 ? "📁 Backend Suite" : answerStyle === "detailed" ? "💻 Code Solution" : "⚡ Homework Solver";
+      }
+      const headerBackBtn = box.querySelector("#hs-header-back-btn");
+      if (headerBackBtn) {
+        if (answerHistory.length > 0) {
+          headerBackBtn.style.display = "inline-flex";
+          headerBackBtn.innerText = "← Previous Answer";
+        } else {
+          headerBackBtn.style.display = "none";
+        }
+      }
       if (settingsBtn) {
         settingsBtn.style.opacity = currentAnswerStealthMode ? "0.6" : "0.75";
         settingsBtn.style.color = inp.overlayTextMuted;
@@ -3837,6 +4025,34 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     backBtn.onclick = (e) => {
       e.stopPropagation();
       toggleSettings(false);
+    };
+  }
+
+  const bottomBackBtn = box.querySelector("#hs-setting-back-bottom-btn");
+  if (bottomBackBtn) {
+    bottomBackBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleSettings(false);
+    };
+  }
+
+  const headerBackBtn = box.querySelector("#hs-header-back-btn");
+  if (headerBackBtn) {
+    if (answerHistory.length > 0) {
+      headerBackBtn.style.display = "inline-flex";
+      headerBackBtn.innerText = "← Previous Answer";
+    }
+    headerBackBtn.onclick = (e) => {
+      e.stopPropagation();
+      const isSettingsOpen = setView && setView.style.display !== "none";
+      if (isSettingsOpen) {
+        toggleSettings(false);
+      } else if (answerHistory.length > 0) {
+        const prev = answerHistory.pop();
+        if (prev) {
+          showAnswerOverlay(prev.answer, prev.options);
+        }
+      }
     };
   }
 
