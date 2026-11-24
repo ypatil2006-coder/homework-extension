@@ -26,8 +26,8 @@ chrome.runtime.onInstalled.addListener((details) => {
     if (chrome.action && chrome.action.setBadgeText) {
       chrome.action.setBadgeText({ text: "" });
     }
-    // Flag to show v1.6.0 notification toast on next active page
-    chrome.storage.local.set({ hs_just_updated: "1.6.0", hs_rate_limited_keys: {} });
+    // Flag to show v1.6.2 notification toast on next active page
+    chrome.storage.local.set({ hs_just_updated: "1.6.2", hs_rate_limited_keys: {} });
   }
   // Check for updates on extension installation or refresh
   checkForExtensionUpdates().catch(() => {});

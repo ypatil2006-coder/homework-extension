@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Homework Solver",
-  "version": "1.6.0",
+  "version": "1.6.2",
   "description": "Created by Yash Patil • Vibe Coded with Anthropic",
   "permissions": [
     "activeTab",

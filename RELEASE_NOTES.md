@@ -1,3 +1,21 @@
+### 🚀 Homework Solver v1.6.2 — Stealth Mode Selection & Dot Color Precision
+
+A high-speed, unobtrusive screen-snipping browser assistant for students, developers, and test-takers powered by Groq LPU vision inference (`qwen/qwen3.8-27b`).
+
+---
+
+### ⚡ Highlights & What's New in v1.6.2
+
+- **🎛️ High-Contrast Stealth Mode Selection States**:
+  - Distinct solid high-contrast pill styling (`#111111` background, `#ffffff` text) for active Answer Style in stealth mode.
+  - Bordered dropdown controls and dynamic context cards preventing invisible boundaries.
+  - Clean, deduplicated Quick Settings header bar.
+- **🎨 Custom Dot Color Precision**:
+  - Full 3-digit and 6-digit hex color normalization with high-contrast indicator rings.
+  - Seamless persistence and portability of `dotColor` in JSON backups.
+
+---
+
 ### 🚀 Homework Solver v1.6.0-beta.1 — Early Access (Beta)
 
 > ⚠️ **EARLY ACCESS / BETA NOTICE**:
