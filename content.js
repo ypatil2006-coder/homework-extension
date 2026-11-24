@@ -2296,6 +2296,56 @@ function extractPureCode(text) {
   return clean.trim();
 }
 
+function sanitizeCodeFormatting(text) {
+  if (!text) return "";
+  // Strip think tags preserving code indentation
+  let code = text.replace(/<\s*(?:think|scratchpad|thought|reasoning)[^>]*>[\s\S]*?<\/\s*(?:think|scratchpad|thought|reasoning)\s*>/gi, "");
+  if (/<\s*(?:think|scratchpad|thought|reasoning)[^>]*>/i.test(code)) {
+    code = code.replace(/<\s*(?:think|scratchpad|thought|reasoning)[^>]*>[\s\S]*/gi, "");
+  }
+
+  // 1. Normalize Windows CRLF to clean LF
+  code = code.replace(/\r\n/g, "\n");
+
+  // If wrapped in markdown code fence (```lang ... ```), extract the inner content
+  const codeBlockMatch = code.match(/```(?:[a-zA-Z0-9_\-\+]*\s*\n)?([\s\S]*?)```/);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    code = codeBlockMatch[1];
+  }
+
+  // Remove any remaining stray leading/trailing fences
+  code = code.replace(/^```[a-zA-Z0-9_\-\+]*\n?/, "").replace(/\n?```$/, "");
+
+  // Strip conversational intros if the model started with "Here is the code:"
+  code = code.replace(/^(?:[ \t]*(?:Here\s+(?:is|are)\s+(?:the\s+)?(?:complete\s+|pure\s+)?code\b[^\n]*\n*|Solution\s*:|Code\s*:)\s*)/i, "");
+
+  // Strip conversational outro if present (e.g. "Hope this helps!", "Complexity: O(N)")
+  code = code.replace(/\n+(?:Complexity|Time Complexity|Space Complexity|Explanation|Notes?):[\s\S]*$/i, "");
+
+  // Remove leading blank lines
+  code = code.replace(/^\n+/, "");
+
+  // 2. Expand all tabs to 4 spaces to eliminate tab/space collision
+  code = code.replace(/\t/g, "    ");
+
+  // 3. Automated Dedent: find minimum indentation across non-empty lines
+  const lines = code.split("\n");
+  let minIndent = Infinity;
+  for (const line of lines) {
+    if (line.trim().length === 0) continue;
+    const leading = line.match(/^ */)[0].length;
+    if (leading < minIndent) minIndent = leading;
+  }
+
+  // Strip common baseline indentation
+  const cleanLines = (minIndent > 0 && minIndent !== Infinity)
+    ? lines.map(line => line.length >= minIndent ? line.slice(minIndent) : line)
+    : lines;
+
+  // 4. Trim trailing whitespace from each line
+  return cleanLines.map(line => line.trimEnd()).join("\n").trim();
+}
+
 function getCleanAnswerOnly(rawText, parts, answerStyle) {
   if (answerStyle === "detailed") {
     return extractPureCode(rawText);
@@ -2974,7 +3024,12 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   box.style.cssText = `
     position: fixed;
     width: ${currentAnswerWidth}px;
-    max-height: 440px;
+    min-width: 350px;
+    max-width: 95vw;
+    max-height: 480px;
+    resize: horizontal;
+    overflow-x: auto;
+    overflow-y: auto;
     z-index: 9999999;
     background: ${getAnswerBoxBg(inp)};
     backdrop-filter: ${blurVal};
@@ -2985,14 +3040,12 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     padding: 10px 14px;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: ${inp.overlayTextPrimary};
-    overflow-y: auto;
     box-sizing: border-box;
     scrollbar-width: thin;
     scrollbar-color: ${colorWithAlpha(inp.overlayTextMuted, 0.4)} transparent;
     user-select: text;
     -webkit-user-select: text;
     transform: translateZ(0);
-    contain: layout style;
   `;
 
   // ENFORCE the selected style. The model may ignore the 2-line contract, so we
@@ -3008,18 +3061,21 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
 
   if (answerStyle === "detailed") {
     // ── Pure Code Mode Layout ──
-    const pureCode = extractPureCode(cleanAnswer);
+    const pureCode = sanitizeCodeFormatting(cleanAnswer);
     if (currentAnswerStealthMode) {
       formattedHtml = `
-        <div style="font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace; font-size: ${currentAnswerFontSize}px; line-height: 1.45; white-space: pre-wrap; word-break: break-all; color: ${inp.cardValue}; tab-size: 4;">
+        <div style="font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace; font-size: ${currentAnswerFontSize}px; line-height: 1.45; white-space: pre; overflow-x: auto; word-break: normal; color: ${inp.cardValue}; tab-size: 4;">
           ${escapeHtml(pureCode || cleanAnswer || "No code received.")}
         </div>
       `;
     } else {
       formattedHtml = `
         <div class="hs-card" style="background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 9px;">
-          <span class="hs-card-label" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${inp.cardLabel}; display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">💻 Pure Code Solution</span>
-          <pre style="margin: 0; font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace; font-size: ${currentAnswerFontSize}px; line-height: 1.45; white-space: pre-wrap; word-break: break-all; color: ${inp.cardValue}; tab-size: 4;">${escapeHtml(pureCode || cleanAnswer || "No code received.")}</pre>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <span class="hs-card-label" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: ${inp.cardLabel}; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">💻 Pure Code Solution</span>
+            <button class="hs-copy-single-code" style="background: transparent; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.5)}; border-radius: 4px; padding: 2px 7px; font-size: 10.5px; cursor: pointer; color: ${inp.cardLabel}; font-family: inherit;">📋 Copy Code</button>
+          </div>
+          <pre class="hs-code-block" style="margin: 0; font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace; font-size: ${currentAnswerFontSize}px; line-height: 1.45; white-space: pre; overflow-x: auto; word-break: normal; color: ${inp.cardValue}; tab-size: 4;">${escapeHtml(pureCode || cleanAnswer || "No code received.")}</pre>
         </div>
       `;
     }
@@ -3248,8 +3304,40 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   }
 
   const onlyAnswerText = (answerStyle === "detailed")
-    ? extractPureCode(cleanAnswer)
+    ? sanitizeCodeFormatting(cleanAnswer)
     : getCleanAnswerOnly(cleanAnswer, parts, answerStyle);
+
+  // Wire single code card copy button
+  const singleCodeBtn = box.querySelector(".hs-copy-single-code");
+  if (singleCodeBtn) {
+    singleCodeBtn.onclick = (e) => {
+      e.stopPropagation();
+      copyToClipboard(onlyAnswerText).then((ok) => {
+        if (ok) {
+          singleCodeBtn.innerText = "✅ Copied!";
+          setTimeout(() => { singleCodeBtn.innerText = "📋 Copy Code"; }, 1500);
+        }
+      });
+    };
+  }
+
+  // Persistent horizontal resize observer
+  if (typeof ResizeObserver !== "undefined") {
+    let roTimer = null;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const w = Math.round(entry.contentRect.width + 28);
+        if (w >= 320 && Math.abs(w - currentAnswerWidth) > 6) {
+          currentAnswerWidth = w;
+          clearTimeout(roTimer);
+          roTimer = setTimeout(() => {
+            chrome.storage.local.set({ answerWidth: currentAnswerWidth }).catch(() => {});
+          }, 400);
+        }
+      }
+    });
+    ro.observe(box);
+  }
 
   // Auto-copy the clean answer text immediately if enabled
   if (currentAnswerAutoCopy && onlyAnswerText) {
