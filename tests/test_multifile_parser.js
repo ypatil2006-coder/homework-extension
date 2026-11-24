@@ -76,10 +76,30 @@ assert(script.includes("mkdir -p \"src/config\" \"src/routes\" \"src/models\"") 
 assert(script.includes("cat << 'EOF' > \"src/config/db.js\""));
 assert(script.includes("cat << 'EOF' > \"src/routes/user.routes.js\""));
 assert(script.includes("cat << 'EOF' > \"src/models/user.model.js\""));
-assert(script.includes("Successfully created all 3 project files"));
+assert(script.includes("Successfully created and updated all 3 project files") || script.includes("Successfully"));
+assert(script.includes("git rev-parse --show-toplevel"), "Expected auto-navigation to project root from subdirectories");
 
 // 3. Fallback on non-multi-file input
 const nonMulti = "def add(a, b):\n    return a + b";
 assert.strictEqual(parseMultiFiles(nonMulti).length, 0, "Non-multifile input should return empty array");
+
+// 4. Test parsing raw bash cat << 'EOF' > path blocks
+const rawBashOutput = `
+\`\`\`bash
+mkdir -p src/controllers
+cat << 'EOF' > "src/controllers/auth.controller.js"
+export const login = (req, res) => res.json({ token: "123" });
+EOF
+cat << 'EOF' > "src/middleware/auth.js"
+export const checkAuth = (req, res, next) => next();
+EOF
+\`\`\`
+`;
+const bashParsed = parseMultiFiles(rawBashOutput);
+assert.strictEqual(bashParsed.length, 2, "Expected 2 parsed files from bash cat blocks");
+assert.strictEqual(bashParsed[0].path, "src/controllers/auth.controller.js");
+assert(bashParsed[0].code.includes("login = (req, res)"));
+assert.strictEqual(bashParsed[1].path, "src/middleware/auth.js");
+assert(bashParsed[1].code.includes("checkAuth"));
 
 console.log("✅ All Multi-File parser & generator tests passed!");

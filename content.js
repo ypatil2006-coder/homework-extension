@@ -953,7 +953,7 @@ function getSubjectPersona(sub, options = {}) {
     "prob-stats": "You are a Senior Probability & Mathematical Statistics Specialist. Rigorously analyze discrete and continuous probability distributions (Binomial, Poisson, Normal, Exponential), conditional probability, Bayes' Theorem, expected value, variance, hypothesis testing, p-values, regression, and combinatorics (permutations & combinations). Verify sample spaces and independence assumptions before calculating.",
     "ai-finance": "You are a Senior Quantitative Finance & AI for Finance Specialist. Rigorously analyze financial mathematics, options pricing, Sharpe/Sortino ratios, risk models (VaR), portfolio optimization, time value of money, trading logic, and ML/RAG evaluation metrics with financial and algorithmic precision.",
     "dsa": dsaPersona,
-    "backend-dev": "You are a Principal Backend Systems Engineer. The user may provide an image of their project file tree along with a README context. Rigorously analyze code logic, HTTP specifications, REST/GraphQL APIs, database schemas, authentication, concurrency, and error handling. STRICT FILE PROTOCOL: When multiple files are required, output production-ready code for every file using the standard delimiter: '### FILE: <relative/path/to/file>' followed by a triple-backtick code fence. Retrieve all database schemas, models, and dependencies directly from the user's README context. Use 100% clean 4-space indentation starting at column 0 with zero tabs.",
+    "backend-dev": "You are a Principal Backend Systems Engineer. The user will provide an image of their project file tree/system along with a README context or task logs. Rigorously analyze the project's directory structure, database schemas, APIs, and models from first principles.\nSTRICT NO-PROSE / 1-SHOT TERMINAL EXECUTION CONTRACT:\n- ZERO English conversational steps or instructions (do NOT write 'Open file X and replace line Y...').\n- Output the full, complete production code for every modified or new file so all changes across all directories can be applied in ONE terminal command.\n- Use the standard delimiter for every file:\n### FILE: <relative/path/to/file>\nfollowed by the complete, directly runnable file content in triple-backtick code fences.\n- Ensure all directory paths are properly structured relative to the project root with 100% clean 4-space indentation starting at column 0 with zero tabs.",
     "communication": "You are an Expert in Linguistic Analysis, English Grammar, and Verbal Ability. Rigorously analyze grammatical correctness (subject-verb agreement, modifiers, tense, parallelism), vocabulary in context, reading comprehension logic, sentence completion, and argument structures."
   };
 
@@ -1858,8 +1858,22 @@ Step 2 (Verify & Finalize): Sanity check against all options. For single choice,
 CRITICAL CONSTRAINT: Keep internal reasoning CONCISE (under 120 words). Do NOT ramble. Conclude with </think> immediately upon verifying the answer, then output the final answer outside <think>.
 `;
 
+  const isBackend = subjectKey === "backend-dev";
+
   const systemPrompts = {
-    detailed: `${domainIntro}\n${reasoningProtocol}\nCRITICAL CODE-ONLY INSTRUCTION:
+    detailed: isBackend
+      ? `${domainIntro}\n${reasoningProtocol}\nCRITICAL BACKEND CODE PROTOCOL:
+You are in Backend Systems Mode.
+Analyze the project file tree and README context thoroughly.
+STRICT NEGATIVE CONSTRAINTS:
+- ZERO plain English explanations before or after (do NOT say 'Now open file X and edit line Y').
+- ZERO conversational filler.
+- Output production-ready, complete code for EVERY required file across all directories.
+- For each file, you MUST use the standard delimiter:
+### FILE: <relative/path/to/file>
+followed by the complete code enclosed in triple backticks.
+- All code must start at column 0 with strict 4-space indentation and zero tabs.`
+      : `${domainIntro}\n${reasoningProtocol}\nCRITICAL CODE-ONLY INSTRUCTION:
 You are in Pure Code Mode.
 If the screenshot contains ANY coding question, algorithm, function, method, class, SQL query, script, or program:
 Output ONLY the 100% complete, working, optimal code in the requested or implied language (Python, C++, Java, JS, etc.).
@@ -1875,7 +1889,9 @@ For non-coding questions: output ONLY the direct final code or numerical answer 
   };
 
   const userPrompts = {
-    detailed: buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, output ONLY the complete executable code with NO comments, NO markdown ticks, and NO explanations. Pure code only.", customQuery),
+    detailed: isBackend
+      ? buildUserPromptWithQuery("Analyze the question, file system tree, and README in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, do NOT write plain English conversational steps. Output production-ready code for all required files using '### FILE: <relative/path/to/file>' so the entire project can be updated in one command.", customQuery)
+      : buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, output ONLY the complete executable code with NO comments, NO markdown ticks, and NO explanations. Pure code only.", customQuery),
     short: buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. If this is a coding problem, output ONLY the code without comments or text. Otherwise outside <think>, output exactly two lines: Why: <explanation> and Final Answer: <the answer>.", customQuery),
     mcq: buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Check if the options have square checkboxes (multi-select / select all that apply) or circular radio buttons (single choice). Outside <think>, output exactly two lines: Why: <explanation> and Correct Option(s): <Letter(s)> — <full text>.", customQuery)
   };
@@ -2465,19 +2481,39 @@ function parseMultiFiles(text) {
   if (!text) return [];
   const clean = stripThinkTags(text);
   const files = [];
+  const seenPaths = new Set();
 
-  // Match ### FILE: <path> or ## File: <path> or File: <path>
-  const regex = /(?:^|\n)#{0,4}\s*(?:FILE|File):\s*`?([^\n`]+)`?\s*\n+```(?:[a-zA-Z0-9_\-\+]*\s*\n)?([\s\S]*?)```/g;
+  // Pattern 1: Delimited file blocks with markdown code blocks:
+  // e.g., ### FILE: src/app.js ```javascript ... ``` or ## File: ... or // File: ...
+  const fileBlockRegex = /(?:^|\n)(?:#{1,4}\s*(?:FILE|File)|(?:\/\/|#)\s*(?:FILE|File)):\s*`?([^\n`]+)`?\s*\n+```(?:[a-zA-Z0-9_\-\+]*\s*\n)?([\s\S]*?)```/g;
   let match;
-  while ((match = regex.exec(clean)) !== null) {
+  while ((match = fileBlockRegex.exec(clean)) !== null) {
     const rawPath = match[1].trim().replace(/^['"]|['"]$/g, "");
     const rawCode = match[2];
     const sanitizedCode = sanitizeCodeFormatting(rawCode);
-    if (rawPath && sanitizedCode) {
+    if (rawPath && sanitizedCode && !seenPaths.has(rawPath)) {
+      seenPaths.add(rawPath);
       files.push({
         path: rawPath,
         code: sanitizedCode
       });
+    }
+  }
+
+  // Pattern 2: Bash cat << 'EOF' > path/to/file blocks (if model outputs raw bash commands)
+  if (files.length === 0) {
+    const bashCatRegex = /cat\s+<<\s*['"]?([A-Za-z0-9_-]+)['"]?\s*>\s*["']?([^"'\n\r]+)["']?\s*\n([\s\S]*?)\n\1/g;
+    while ((match = bashCatRegex.exec(clean)) !== null) {
+      const rawPath = match[2].trim().replace(/^['"]|['"]$/g, "");
+      const rawCode = match[3];
+      const sanitizedCode = sanitizeCodeFormatting(rawCode);
+      if (rawPath && sanitizedCode && !seenPaths.has(rawPath)) {
+        seenPaths.add(rawPath);
+        files.push({
+          path: rawPath,
+          code: sanitizedCode
+        });
+      }
     }
   }
 
@@ -2486,7 +2522,18 @@ function parseMultiFiles(text) {
 
 function generateTerminalScript(files) {
   if (!files || files.length === 0) return "";
-  let script = "#!/usr/bin/env bash\n# Generated by Homework Solver\nset -e\n\n";
+  let script = "#!/usr/bin/env bash\n# Generated by Homework Solver — 1-Shot Project File Generator\nset -e\n\n";
+
+  // 1. Auto-navigate to project root from any subdirectory
+  script += "# 1. Auto-navigate to project root from any subdirectory\n";
+  script += "if git rev-parse --show-toplevel >/dev/null 2>&1; then\n";
+  script += "  cd \"$(git rev-parse --show-toplevel)\"\n";
+  script += "elif [ -f \"../package.json\" ] || [ -f \"../../package.json\" ] || [ -f \"../requirements.txt\" ] || [ -f \"../../requirements.txt\" ]; then\n";
+  script += "  while [ ! -f \"package.json\" ] && [ ! -f \"requirements.txt\" ] && [ ! -f \"go.mod\" ] && [ ! -f \"Cargo.toml\" ] && [ \"$PWD\" != \"/\" ]; do\n";
+  script += "    cd ..\n";
+  script += "  done\n";
+  script += "fi\n\n";
+
   const dirs = new Set();
   for (const f of files) {
     const parts = f.path.split("/");
@@ -2501,7 +2548,7 @@ function generateTerminalScript(files) {
   for (const f of files) {
     script += `cat << 'EOF' > "${f.path}"\n${f.code}\nEOF\n\n`;
   }
-  script += `echo "✅ Successfully created all ${files.length} project files!"\n`;
+  script += `echo "✅ Successfully created and updated all ${files.length} project files!"\n`;
   return script.trim();
 }
 
@@ -3359,7 +3406,8 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
       <div class="hs-backend-suite" style="margin-bottom: 9px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; flex-wrap: wrap; gap: 4px;">
           <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: ${inp.cardLabel}; text-transform: uppercase; letter-spacing: 0.5px;">📁 Backend Project (${multiFiles.length} Files)</span>
-          <div style="display: flex; gap: 4px;">
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <button id="hs-copy-all-terminal-quick" data-script="${escapeHtml(termScript)}" title="Copy all-in-one terminal command to create and update all files" style="padding: 2px 8px; font-size: 10px; font-weight: 700; border-radius: 4px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">⚡ 1-Shot Cmd</button>
             <button class="hs-view-toggle active" id="hs-btn-view-files" style="padding: 2px 7px; font-size: 10px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">📑 Files</button>
             <button class="hs-view-toggle" id="hs-btn-view-terminal" style="padding: 2px 7px; font-size: 10px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: transparent; color: ${inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">💻 Terminal</button>
           </div>
@@ -3880,6 +3928,21 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
       });
     };
   });
+
+  // Copy button for quick terminal command in files header
+  const quickTermBtn = box.querySelector("#hs-copy-all-terminal-quick");
+  if (quickTermBtn) {
+    quickTermBtn.onclick = (e) => {
+      e.stopPropagation();
+      const script = quickTermBtn.getAttribute("data-script") || "";
+      copyToClipboard(script).then((ok) => {
+        if (ok) {
+          quickTermBtn.innerText = "✅ Command Copied!";
+          setTimeout(() => { quickTermBtn.innerText = "⚡ 1-Shot Cmd"; }, 1500);
+        }
+      });
+    };
+  }
 
   // Copy button for terminal script
   const copyTermBtn = box.querySelector("#hs-copy-terminal-btn");
