@@ -1960,26 +1960,35 @@ For non-coding questions: output ONLY the direct final code or numerical answer 
   // Groq streams tokens at blazing speeds (300+ token/s). Direct DOM updates on
   // every raw chunk trigger micro-stutters and main-thread layout thrashing.
   // We buffer streaming text and sync repaints with the display refresh cycle.
-  let rafPending = false;
+  let rafId = null;
+  let isStreamActive = true;
   let latestStreamText = "";
   const paintChunk = (partialText) => {
+    if (!isStreamActive) return;
     latestStreamText = partialText;
-    if (!rafPending) {
-      rafPending = true;
-      requestAnimationFrame(() => {
-        rafPending = false;
-        if (latestStreamText) {
+    if (!rafId) {
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (isStreamActive && latestStreamText) {
           updateStreamingOverlay(latestStreamText, answerStyle);
         }
       });
     }
   };
+  const stopStreamPainting = () => {
+    isStreamActive = false;
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  };
   const flushChunk = () => {
-    if (rafPending) {
-      rafPending = false;
-      if (latestStreamText) {
-        updateStreamingOverlay(latestStreamText, answerStyle);
-      }
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    if (isStreamActive && latestStreamText) {
+      updateStreamingOverlay(latestStreamText, answerStyle);
     }
   };
 
@@ -1990,6 +1999,7 @@ For non-coding questions: output ONLY the direct final code or numerical answer 
   flushChunk();
 
   if (phase1.ok) {
+    stopStreamPainting();
     chrome.storage.local.set({ lastGood: { GroqModel: primaryCfg.model } });
     showAnswerOverlay(phase1.text, {
       style: answerStyle,
@@ -2054,6 +2064,7 @@ For non-coding questions: output ONLY the direct final code or numerical answer 
     flushChunk();
 
     if (res.ok) {
+      stopStreamPainting();
       chrome.storage.local.set({ lastGood: { GroqModel: fallbackCfg.model } });
       if (typeof fallbackCfg.keyIndex === "number") {
         try {
@@ -2603,6 +2614,11 @@ function updateStreamingOverlay(partialText, style) {
     return;
   }
   let box = document.getElementById("hs-answer-overlay");
+  // GUARD: If the overlay has already transitioned to a final solution view,
+  // NEVER allow lingering streaming chunks to overwrite it!
+  if (box && (box.querySelector("#hs-solution-view") || box.querySelector(".hs-card") || box.querySelector(".hs-backend-suite") || box.querySelector("#hs-search-input"))) {
+    return;
+  }
   let isNew = false;
   if (!box) {
     box = document.createElement("div");
@@ -3568,7 +3584,7 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
 
   const activeCrop = lastCroppedBase64 || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hs_last_crop") : null);
   let expandStepBtnHtml = "";
-  if (!isDerivation && activeCrop) {
+  if (answerStyle !== "detailed" && !isDerivation && activeCrop) {
     if (currentAnswerStealthMode) {
       expandStepBtnHtml = `
         <div style="margin-top: 6px; padding-top: 4px;">
@@ -3609,7 +3625,7 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
             background: transparent; color: ${inp.cardLabel || inp.overlayTextPrimary || '#111111'};
             border: 1px dashed ${colorWithAlpha(inp.cardLabel || inp.overlayTextMuted, 0.45)}; border-radius: 4px; padding: 2px 6px; font-size: 11px;
             cursor: pointer; opacity: 0.85; font-family: inherit;
-          ">[← Back to Previous Answer]</button>
+          ">[← Back to Previous Solution]</button>
         </div>
       `;
     } else {
@@ -3706,14 +3722,14 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
     <div id="hs-solution-view" style="user-select: text; -webkit-user-select: text;">
       <!-- TOP-ANCHORED MULTIMODAL SEARCH BAR (Clean full width row) -->
       <div id="hs-top-search-bar" style="margin-bottom: 8px; display: flex; gap: 6px; align-items: center; width: 100%; box-sizing: border-box;">
-        <textarea id="hs-search-input" rows="1" placeholder="Paste README context or ask follow-up ('Solve in C++', etc.)..." style="
-          flex: 1; min-height: 28px; max-height: 120px; resize: none; overflow-y: auto;
-          padding: 5px 9px; font-family: inherit; font-size: 11.5px; line-height: 1.35;
+        <textarea id="hs-search-input" rows="1" placeholder="Ask follow-up or paste README context... (Enter to send)" style="
+          flex: 1; min-height: 34px; height: 34px; max-height: 120px; resize: none; overflow-y: auto;
+          padding: 6px 9px; font-family: inherit; font-size: 11.5px; line-height: 1.4;
           background: ${colorWithAlpha(inp.cardBg, 0.85)}; color: ${inp.overlayTextPrimary};
           border: 1px solid ${inp.cardBorder}; border-radius: 6px; outline: none; box-sizing: border-box;
         "></textarea>
         <button id="hs-search-submit" title="Send query with last crop (Enter)" style="
-          height: 28px; padding: 0 10px; background: ${inp.buttonBg}; color: ${inp.buttonText};
+          height: 34px; padding: 0 11px; background: ${inp.buttonBg}; color: ${inp.buttonText};
           border: 1px solid ${inp.buttonBorder}; border-radius: 6px; font-size: 12px; font-weight: 700;
           cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
           transition: opacity 0.12s ease;
@@ -4065,7 +4081,7 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   if (searchInput) {
     searchInput.addEventListener("input", () => {
       searchInput.style.height = "auto";
-      searchInput.style.height = `${Math.min(searchInput.scrollHeight, 120)}px`;
+      searchInput.style.height = `${Math.max(34, Math.min(searchInput.scrollHeight, 120))}px`;
     });
     searchInput.addEventListener("keydown", (e) => {
       e.stopPropagation();
