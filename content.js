@@ -276,6 +276,16 @@ function rethemeLiveAnswerOverlay() {
   }
 }
 
+let currentQuickSettings = {
+  style: "detailed",
+  subject: "auto",
+  globalApproach: "normal",
+  autoSelect: false,
+  dsaLanguage: "Python",
+  dsaOptimize: "Optimal Time & Space",
+  dsaFormat: "Function Solution"
+};
+
 if (typeof chrome !== "undefined" && chrome.storage?.local) {
   try {
     chrome.storage.local.get([
@@ -284,9 +294,17 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
       "themeMode", "customTheme",
       "snipDimming", "snipBorderThickness", "snipFillOpacity", "snipBorderStyle", "snipBorderGlow", "snipShowHint",
       "answerStealthMode", "answerBorderThickness", "answerBorderRadius", "answerWidth", "answerOpacity", "answerBlur", "answerFontSize", "answerBorderStyle", "answerDragBar", "answerAutoCopy",
-      "answerCustomColorEnabled", "answerCustomBgColor", "answerCustomTextColor", "answerCustomBorderColor"
+      "answerCustomColorEnabled", "answerCustomBgColor", "answerCustomTextColor", "answerCustomBorderColor",
+      "style", "subject", "globalApproach", "autoSelect", "dsaLanguage", "dsaOptimize", "dsaFormat"
     ], (res) => {
       if (res) {
+        if (res.style) currentQuickSettings.style = res.style;
+        if (res.subject) currentQuickSettings.subject = res.subject;
+        if (res.globalApproach) currentQuickSettings.globalApproach = res.globalApproach;
+        if (res.autoSelect !== undefined) currentQuickSettings.autoSelect = !!res.autoSelect;
+        if (res.dsaLanguage) currentQuickSettings.dsaLanguage = res.dsaLanguage;
+        if (res.dsaOptimize) currentQuickSettings.dsaOptimize = res.dsaOptimize;
+        if (res.dsaFormat) currentQuickSettings.dsaFormat = res.dsaFormat;
         if (res.hsOverlayPos) savedOverlayPos = res.hsOverlayPos;
         if (res.hsDotPos) savedDotPos = res.hsDotPos;
         if (res.dotMode !== undefined) currentDotMode = !!res.dotMode;
@@ -397,6 +415,14 @@ if (typeof chrome !== "undefined" && chrome.storage?.local) {
           currentAnswerCustomBorderColor = changes.answerCustomBorderColor.newValue;
           rethemeNeeded = true;
         }
+
+        if (changes.style?.newValue) currentQuickSettings.style = changes.style.newValue;
+        if (changes.subject?.newValue) currentQuickSettings.subject = changes.subject.newValue;
+        if (changes.globalApproach?.newValue) currentQuickSettings.globalApproach = changes.globalApproach.newValue;
+        if (changes.autoSelect !== undefined) currentQuickSettings.autoSelect = !!changes.autoSelect.newValue;
+        if (changes.dsaLanguage?.newValue) currentQuickSettings.dsaLanguage = changes.dsaLanguage.newValue;
+        if (changes.dsaOptimize?.newValue) currentQuickSettings.dsaOptimize = changes.dsaOptimize.newValue;
+        if (changes.dsaFormat?.newValue) currentQuickSettings.dsaFormat = changes.dsaFormat.newValue;
 
         let themeChanged = false;
         if (changes.snipThemeMode || changes.themeMode) {
@@ -850,10 +876,26 @@ function callStream({ provider, url, headers, body, deadlineMs, onChunk }) {
   });
 }
 
-function getSubjectPersona(sub) {
+function buildUserPromptWithQuery(base, customQuery) {
+  if (!customQuery || !customQuery.trim()) return base;
+  return `User Specific Instruction / README Context: "${customQuery.trim()}"\n\nAnalyze the question in the image and fulfill the user's specific instruction/context completely:\n${base}`;
+}
+
+function getSubjectPersona(sub, options = {}) {
   const aptitudePersona = "You are an Elite Quantitative Aptitude, Logical Reasoning & Mathematics Specialist. You master both numerical aptitude and logical deduction:\n" +
     "- Quantitative Aptitude: Exact calculations for percentages, ratios, profit & loss, work & time, speed-time-distance, averages, mixtures, number series, simple/compound interest, geometry, mensuration, and algebraic equations. Pay strict attention to units and dimensional consistency.\n" +
     "- Logical Reasoning & Puzzles: Formal deductions for linear/circular seating arrangements, family trees & blood relations, syllogisms (strict Venn logic), direction sense, input-output machines, coding-decoding, and matrix elimination grids. Never make unstated assumptions.";
+
+  let dsaPersona = "You are a Principal Algorithms Engineer & Competitive Programming Specialist. Rigorously analyze data structures (trees, graphs, heaps, hash maps, tries) and algorithmic techniques (DP, two pointers, sliding window, binary search, DFS/BFS). Trace invariants, time/space complexity, and boundary edge cases (null, empty, single element, cycles, integer overflow).";
+  if (options && options.dsaLanguage) {
+    dsaPersona += `\nTARGET LANGUAGE: ${options.dsaLanguage}.`;
+  }
+  if (options && options.dsaOptimize) {
+    dsaPersona += `\nOPTIMIZATION GOAL: ${options.dsaOptimize}.`;
+  }
+  if (options && options.dsaFormat) {
+    dsaPersona += `\nCODE FORMAT: ${options.dsaFormat}.`;
+  }
 
   const personas = {
     auto: "You are an Expert Academic Tutor & Multi-Disciplinary Problem Solver. Rigorously analyze problems across sciences, engineering, mathematics, and humanities from first principles. Extract given parameters, verify step-by-step logic, and check for negative constraints (NOT, EXCEPT, LEAST).",
@@ -861,7 +903,7 @@ function getSubjectPersona(sub) {
     "logical-reasoning": aptitudePersona,
     "prob-stats": "You are a Senior Probability & Mathematical Statistics Specialist. Rigorously analyze discrete and continuous probability distributions (Binomial, Poisson, Normal, Exponential), conditional probability, Bayes' Theorem, expected value, variance, hypothesis testing, p-values, regression, and combinatorics (permutations & combinations). Verify sample spaces and independence assumptions before calculating.",
     "ai-finance": "You are a Senior Quantitative Finance & AI for Finance Specialist. Rigorously analyze financial mathematics, options pricing, Sharpe/Sortino ratios, risk models (VaR), portfolio optimization, time value of money, trading logic, and ML/RAG evaluation metrics with financial and algorithmic precision.",
-    "dsa": "You are a Principal Algorithms Engineer & Competitive Programming Specialist. Rigorously analyze data structures (trees, graphs, heaps, hash maps, tries) and algorithmic techniques (DP, two pointers, sliding window, binary search, DFS/BFS). Trace invariants, time/space complexity, and boundary edge cases (null, empty, single element, cycles, integer overflow).",
+    "dsa": dsaPersona,
     "backend-dev": "You are a Principal Backend Systems Engineer. The user may provide an image of their project file tree along with a README context. Rigorously analyze code logic, HTTP specifications, REST/GraphQL APIs, database schemas, authentication, concurrency, and error handling. STRICT FILE PROTOCOL: When multiple files are required, output production-ready code for every file using the standard delimiter: '### FILE: <relative/path/to/file>' followed by a triple-backtick code fence. Retrieve all database schemas, models, and dependencies directly from the user's README context. Use 100% clean 4-space indentation starting at column 0 with zero tabs.",
     "communication": "You are an Expert in Linguistic Analysis, English Grammar, and Verbal Ability. Rigorously analyze grammatical correctness (subject-verb agreement, modifiers, tense, parallelism), vocabulary in context, reading comprehension logic, sentence completion, and argument structures."
   };
@@ -870,7 +912,7 @@ function getSubjectPersona(sub) {
 }
 
 // ── Approach 1: Sequential 3-Stage Unrestricted Deep Engine ──
-async function callAptitudeSequential3Stage(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject }) {
+async function callAptitudeSequential3Stage(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject, customQuery, dsaOptions } = {}) {
   const groqKeysRaw = (keys || {}).Groq || "";
   const groqParsed = groqKeysRaw.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
   if (groqParsed.length === 0) {
@@ -986,7 +1028,7 @@ CRITICAL: Do NOT attempt to solve. Output ONLY the clean structured deconstructi
       { role: "system", content: STAGE1_SYSTEM },
       { role: "user", content: [
         { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
-        { type: "text", text: "Extract and formalize the question, given values, units, options, and constraints from this image." }
+        { type: "text", text: buildUserPromptWithQuery("Extract and formalize the question, given values, units, options, and constraints from this image.", customQuery) }
       ]}
     ],
     maxTokens: 4096,
@@ -1005,7 +1047,7 @@ CRITICAL: Do NOT attempt to solve. Output ONLY the clean structured deconstructi
   const stage1Text = stripThinkTags(stage1Res.text).trim();
 
   // ── Stage 2: Independent First-Principles Derivation (UNRESTRICTED THINKING) ──
-  const domainPersona = getSubjectPersona(subject);
+  const domainPersona = getSubjectPersona(subject, dsaOptions);
   const STAGE2_SYSTEM = `${domainPersona}
 You are an Elite Problem Solving & Pure Mathematical/Logical Deduction Specialist.
 You are given the verified problem transcription from Stage 1 AND the original screenshot.
@@ -1150,7 +1192,7 @@ answerStyle === "short" ? `Why: <one short line explaining why this answer is co
 
 
 // ── Approach 2: Parallel Dual-Key Consensus Engine (~1.5s) ──
-async function callAptitudeParallelDualKey(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject }) {
+async function callAptitudeParallelDualKey(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject, customQuery, dsaOptions } = {}) {
   const groqKeysRaw = (keys || {}).Groq || "";
   const groqParsed = groqKeysRaw.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
   if (groqParsed.length === 0) {
@@ -1179,7 +1221,7 @@ async function callAptitudeParallelDualKey(b64, { forceStyle, answerStyle, keys,
   console.log(`[hs-parallel] Running Dual-Key Engine: Worker 1 on Key #${key1Display}, Worker 2 on Key #${key2Display}`);
   showLoadingOverlay(`⚡ [Parallel Dual-Key] Solving & Auditing across Keys #${key1Display} & #${key2Display}…`);
 
-  const domainPersona = getSubjectPersona(subject);
+  const domainPersona = getSubjectPersona(subject, dsaOptions);
   const SOLVER_SYSTEM = `${domainPersona}
 Analyze the problem in the screenshot from absolute first principles:
 1. Parse parameters, strict dimensional units, and explicit constraints.
@@ -1245,7 +1287,7 @@ ${answerStyle === "mcq" ? "Why: <one short line explaining why this option avoid
         { role: "system", content: SOLVER_SYSTEM },
         { role: "user", content: [
           { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
-          { type: "text", text: userPrompt }
+          { type: "text", text: buildUserPromptWithQuery(userPrompt, customQuery) }
         ]}
       ],
       temperature: 0,
@@ -1271,7 +1313,7 @@ ${answerStyle === "mcq" ? "Why: <one short line explaining why this option avoid
         { role: "system", content: AUDITOR_SYSTEM },
         { role: "user", content: [
           { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
-          { type: "text", text: userPrompt }
+          { type: "text", text: buildUserPromptWithQuery(userPrompt, customQuery) }
         ]}
       ],
       temperature: 0,
@@ -1345,7 +1387,7 @@ ${answerStyle === "mcq" ? "Why: <one short line explaining why this option avoid
 }
 
 // ── Approach 3: 2-Stage Pipeline (Solver ➔ Crosschecker) ──
-async function callAptitudeDecoupledPipeline(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject }) {
+async function callAptitudeDecoupledPipeline(b64, { forceStyle, answerStyle, keys, customModel, lastGood, autoSelect, subject, customQuery, dsaOptions } = {}) {
   const groqKeysRaw = (keys || {}).Groq || "";
   const groqParsed = groqKeysRaw.split(/[\n,]+/).map(k => k.trim()).filter(k => k.length > 0);
   if (groqParsed.length === 0) {
@@ -1375,7 +1417,7 @@ async function callAptitudeDecoupledPipeline(b64, { forceStyle, answerStyle, key
   // ── STAGE 1: First-Principles Solver (Key 1) ──
   showLoadingOverlay(`⚡ [Key #${key1Display}/${totalKeys}] Stage 1/2: Solving question from first principles…`);
 
-  const domainPersona = getSubjectPersona(subject);
+  const domainPersona = getSubjectPersona(subject, dsaOptions);
   const STAGE1_SOLVER_SYSTEM = `${domainPersona}
 You are an Elite Problem Solver.
 Analyze the problem in the screenshot and solve it directly from absolute first principles.
@@ -1427,7 +1469,7 @@ ${answerStyle === "mcq" ? "Option(s): <Option Letter(s)> — <full option text(s
         { role: "system", content: STAGE1_SOLVER_SYSTEM },
         { role: "user", content: [
           { type: "image_url", image_url: { url: `data:image/jpeg;base64,${b64}` } },
-          { type: "text", text: "Solve this question directly from first principles. Show the step-by-step derivation and state the preliminary answer clearly." }
+          { type: "text", text: buildUserPromptWithQuery("Solve this question directly from first principles. Show the step-by-step derivation and state the preliminary answer clearly.", customQuery) }
         ]}
       ],
       temperature: 0,
@@ -1616,8 +1658,10 @@ ${answerStyle === "mcq" ? `Why: <one crisp, definitive sentence explaining why t
 
 
 // ── Call AI API (Orchestrator with Multi-Approach Dispatching) ─
-async function callAPI(b64, { forceStyle } = {}) {
-  const loadingStatus = forceStyle === "detailed" ? "Generating step-by-step derivation..." : "Solving question...";
+async function callAPI(b64, { forceStyle, customQuery } = {}) {
+  const loadingStatus = customQuery
+    ? "Refining with README / custom query…"
+    : forceStyle === "detailed" ? "Generating step-by-step derivation..." : "Solving question...";
   if (forceStyle === "detailed") {
     currentDotExpanded = true;
   } else {
@@ -1630,11 +1674,12 @@ async function callAPI(b64, { forceStyle } = {}) {
     return;
   }
 
-  let keys, style, models, subject, lastGood, autoSelect, globalApproach, subjectApproaches, quickApproach;
+  let keys, style, models, subject, lastGood, autoSelect, globalApproach, subjectApproaches, quickApproach, dsaLanguage, dsaOptimize, dsaFormat;
   try {
     const data = await chrome.storage.local.get([
       "keys", "style", "models", "subject", "lastGood", "autoSelect", "dotMode", "dotSize", "dotOpacity", "hsDotPos",
-      "globalApproach", "subjectApproaches", "quickApproach"
+      "globalApproach", "subjectApproaches", "quickApproach",
+      "dsaLanguage", "dsaOptimize", "dsaFormat"
     ]);
     if (data.dotMode !== undefined) currentDotMode = !!data.dotMode;
     if (data.dotSize !== undefined) currentDotSize = Number(data.dotSize);
@@ -1654,10 +1699,25 @@ async function callAPI(b64, { forceStyle } = {}) {
     globalApproach = data.globalApproach || "normal";
     subjectApproaches = data.subjectApproaches || {};
     quickApproach = data.quickApproach || "global";
+    dsaLanguage = data.dsaLanguage || currentQuickSettings.dsaLanguage;
+    dsaOptimize = data.dsaOptimize || currentQuickSettings.dsaOptimize;
+    dsaFormat = data.dsaFormat || currentQuickSettings.dsaFormat;
+
+    currentQuickSettings = {
+      style: style || currentQuickSettings.style,
+      subject: subject || currentQuickSettings.subject,
+      globalApproach: globalApproach || currentQuickSettings.globalApproach,
+      autoSelect: autoSelect !== undefined ? autoSelect : currentQuickSettings.autoSelect,
+      dsaLanguage,
+      dsaOptimize,
+      dsaFormat
+    };
   } catch (e) {
     showAnswerOverlay("Extension context invalidated. Please refresh this page (F5).");
     return;
   }
+
+  const dsaOptions = { dsaLanguage, dsaOptimize, dsaFormat };
 
   showLoadingOverlay(loadingStatus);
 
@@ -1685,7 +1745,7 @@ async function callAPI(b64, { forceStyle } = {}) {
     effectiveApproach = globalApproach || "normal";
   }
 
-  console.log(`[hs] Subject: "${subjectKey}", Effective Approach: "${effectiveApproach}"`);
+  console.log(`[hs] Subject: "${subjectKey}", Effective Approach: "${effectiveApproach}", Query: "${customQuery || ''}"`);
 
   // Dispatch to chosen approach engine
   if (effectiveApproach === "parallel-dual") {
@@ -1696,7 +1756,9 @@ async function callAPI(b64, { forceStyle } = {}) {
       customModel,
       lastGood,
       autoSelect,
-      subject: subjectKey
+      subject: subjectKey,
+      customQuery,
+      dsaOptions
     });
     return;
   }
@@ -1709,7 +1771,9 @@ async function callAPI(b64, { forceStyle } = {}) {
       customModel,
       lastGood,
       autoSelect,
-      subject: subjectKey
+      subject: subjectKey,
+      customQuery,
+      dsaOptions
     });
     return;
   }
@@ -1722,13 +1786,15 @@ async function callAPI(b64, { forceStyle } = {}) {
       customModel,
       lastGood,
       autoSelect,
-      subject: subjectKey
+      subject: subjectKey,
+      customQuery,
+      dsaOptions
     });
     return;
   }
 
   // ── Fall-through: Normal Single-Pass Engine (~1.2s) ──
-  const domainIntro = getSubjectPersona(subjectKey);
+  const domainIntro = getSubjectPersona(subjectKey, dsaOptions);
 
 
   const reasoningProtocol = `
@@ -1760,17 +1826,16 @@ For non-coding questions: output ONLY the direct final code or numerical answer 
   };
 
   const userPrompts = {
-    detailed: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, output ONLY the complete executable code with NO comments, NO markdown ticks, and NO explanations. Pure code only.",
-    short: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. If this is a coding problem, output ONLY the code without comments or text. Otherwise outside <think>, output exactly two lines: Why: <explanation> and Final Answer: <the answer>.",
-    mcq: "Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Check if the options have square checkboxes (multi-select / select all that apply) or circular radio buttons (single choice). Outside <think>, output exactly two lines: Why: <explanation> and Correct Option(s): <Letter(s)> — <full text>."
+    detailed: buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Outside <think>, output ONLY the complete executable code with NO comments, NO markdown ticks, and NO explanations. Pure code only.", customQuery),
+    short: buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. If this is a coding problem, output ONLY the code without comments or text. Otherwise outside <think>, output exactly two lines: Why: <explanation> and Final Answer: <the answer>.", customQuery),
+    mcq: buildUserPromptWithQuery("Solve the question in this screenshot. Follow the Two-Step Reasoning protocol internally in <think>...</think> concisely. Check if the options have square checkboxes (multi-select / select all that apply) or circular radio buttons (single choice). Outside <think>, output exactly two lines: Why: <explanation> and Correct Option(s): <Letter(s)> — <full text>.", customQuery)
   };
 
-  // Output token budget: 750 tokens gives more than 3x headroom for concise
-  // internal reasoning (<think>...) while keeping Groq rate-limiter reservation low.
+  // Output token budget: 4096 tokens for multi-file/detailed code generation, 750 for short/mcq
   const maxTokensMap = {
     mcq: 750,
     short: 750,
-    detailed: 1500
+    detailed: 4096
   };
 
   const groqKeysRaw = (keys || {}).Groq || "";
@@ -3317,8 +3382,15 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
   }
 
   box.innerHTML = `
-    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 70px; height: 26px; cursor: grab; z-index: 5; display: ${currentAnswerDragBar ? 'block' : 'none'};"></div>
+    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 105px; height: 26px; cursor: grab; z-index: 5; display: ${currentAnswerDragBar ? 'block' : 'none'};"></div>
     <div style="position: absolute; top: 2px; right: 2px; display: flex; align-items: center; gap: 2px; z-index: 10;">
+      <button id="hs-settings-btn" title="Quick Settings (Operational Only)" style="
+        width: 32px; height: 32px;
+        background: transparent; color: ${inp.overlayTextMuted}; border: none;
+        cursor: pointer; font-size: 14px; line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: opacity 0.12s ease, transform 0.1s ease;
+      ">⚙</button>
       <button id="hs-copy" title="Copy clean answer" style="
         width: 32px; height: 32px;
         background: transparent; color: ${inp.overlayTextMuted}; border: none;
@@ -3334,19 +3406,98 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
         padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'}; transition: opacity 0.12s ease, transform 0.1s ease;
       ">✕</button>
     </div>
-    <div style="padding-top: 4px; padding-right: 28px; user-select: text; -webkit-user-select: text; cursor: text;">
-      ${formattedHtml}
-      ${expandStepBtnHtml}
-      ${truncNote}
-      ${keyBadge}
+
+    <!-- NORMAL SOLUTION VIEW -->
+    <div id="hs-solution-view" style="padding-top: 4px; padding-right: 28px; user-select: text; -webkit-user-select: text;">
+      <!-- TOP-ANCHORED MULTIMODAL SEARCH BAR -->
+      <div id="hs-top-search-bar" style="margin-bottom: 9px; display: flex; gap: 6px; align-items: flex-start;">
+        <textarea id="hs-search-input" rows="1" placeholder="Paste README context or ask follow-up ('Solve in C++', etc.)..." style="
+          flex: 1; min-height: 28px; max-height: 120px; resize: none; overflow-y: auto;
+          padding: 5px 9px; font-family: inherit; font-size: 11.5px; line-height: 1.35;
+          background: ${colorWithAlpha(inp.cardBg, 0.85)}; color: ${inp.overlayTextPrimary};
+          border: 1px solid ${inp.cardBorder}; border-radius: 6px; outline: none; box-sizing: border-box;
+        "></textarea>
+        <button id="hs-search-submit" title="Send query with last crop (Enter)" style="
+          height: 28px; padding: 0 10px; background: ${inp.buttonBg}; color: ${inp.buttonText};
+          border: 1px solid ${inp.buttonBorder}; border-radius: 6px; font-size: 12px; font-weight: 700;
+          cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+          transition: opacity 0.12s ease;
+        ">➔</button>
+      </div>
+
+      <!-- SOLUTION CONTENT BODY -->
+      <div id="hs-solution-body">
+        ${formattedHtml}
+        ${expandStepBtnHtml}
+        ${truncNote}
+        ${keyBadge}
+      </div>
+    </div>
+
+    <!-- QUICK SETTINGS VIEW (Zero cosmetic fluff, purely operational) -->
+    <div id="hs-settings-view" style="display: none; padding-top: 4px; padding-right: 28px; user-select: text; -webkit-user-select: text;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid ${colorWithAlpha(inp.cardBorder, 0.6)}; padding-bottom: 6px;">
+        <span style="font-size: 12.5px; font-weight: 700; color: ${inp.cardLabel};">⚙ Quick Settings</span>
+        <button id="hs-btn-back-solution" style="padding: 2px 8px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">← Back</button>
+      </div>
+
+      <!-- 1. Answer Style -->
+      <div style="margin-bottom: 9px;">
+        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${inp.cardLabel}; margin-bottom: 4px; letter-spacing: 0.5px;">Answer Style</label>
+        <div id="hs-setting-style-group" style="display: flex; gap: 4px;">
+          <button type="button" class="hs-setting-style-pill" data-style="mcq" style="flex: 1; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${(answerStyle === 'mcq') ? inp.buttonBg : 'transparent'}; color: ${(answerStyle === 'mcq') ? inp.buttonText : inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">MCQ</button>
+          <button type="button" class="hs-setting-style-pill" data-style="short" style="flex: 1; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${(answerStyle === 'short') ? inp.buttonBg : 'transparent'}; color: ${(answerStyle === 'short') ? inp.buttonText : inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">Short</button>
+          <button type="button" class="hs-setting-style-pill" data-style="detailed" style="flex: 1; padding: 4px 6px; font-size: 11px; border-radius: 4px; border: 1px solid ${inp.cardBorder}; background: ${(answerStyle === 'detailed') ? inp.buttonBg : 'transparent'}; color: ${(answerStyle === 'detailed') ? inp.buttonText : inp.overlayTextMuted}; cursor: pointer; font-family: inherit;">💻 Code Only</button>
+        </div>
+      </div>
+
+      <!-- 2. Subject Persona -->
+      <div style="margin-bottom: 9px;">
+        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${inp.cardLabel}; margin-bottom: 4px; letter-spacing: 0.5px;">Subject Domain</label>
+        <select id="hs-setting-subject" style="width: 100%; padding: 4px 7px; font-size: 11.5px; border-radius: 5px; background: ${inp.cardBg}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none; font-family: inherit;">
+          <option value="auto" ${currentQuickSettings.subject === 'auto' ? 'selected' : ''}>Auto / Academic General</option>
+          <option value="dsa" ${currentQuickSettings.subject === 'dsa' ? 'selected' : ''}>DSA & Algorithms</option>
+          <option value="backend-dev" ${currentQuickSettings.subject === 'backend-dev' ? 'selected' : ''}>Backend Systems & Multi-File</option>
+          <option value="aptitude-reasoning" ${(currentQuickSettings.subject === 'aptitude-reasoning' || currentQuickSettings.subject === 'logical-reasoning') ? 'selected' : ''}>Quantitative Aptitude & Reasoning</option>
+          <option value="prob-stats" ${currentQuickSettings.subject === 'prob-stats' ? 'selected' : ''}>Probability & Statistics</option>
+          <option value="ai-finance" ${currentQuickSettings.subject === 'ai-finance' ? 'selected' : ''}>Quantitative AI & Finance</option>
+          <option value="communication" ${currentQuickSettings.subject === 'communication' ? 'selected' : ''}>Verbal & Linguistic</option>
+        </select>
+      </div>
+
+      <!-- 3. Dynamic Subject Context Card -->
+      <div id="hs-dynamic-subject-card" style="margin-bottom: 9px; padding: 8px 10px; border-radius: 6px; background: ${inp.cardBg}; border-left: 2.5px solid ${inp.cardBorder}; display: none;"></div>
+
+      <!-- 4. Reasoning Engine (Approach) -->
+      <div style="margin-bottom: 9px;">
+        <label style="display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: ${inp.cardLabel}; margin-bottom: 4px; letter-spacing: 0.5px;">Reasoning Engine</label>
+        <select id="hs-setting-approach" style="width: 100%; padding: 4px 7px; font-size: 11.5px; border-radius: 5px; background: ${inp.cardBg}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none; font-family: inherit;">
+          <option value="normal" ${currentQuickSettings.globalApproach === 'normal' ? 'selected' : ''}>Normal Single-Pass (~1.2s)</option>
+          <option value="parallel-dual" ${currentQuickSettings.globalApproach === 'parallel-dual' ? 'selected' : ''}>⚡ Parallel Dual-Key Consensus (~1.5s)</option>
+          <option value="sequential-3stage" ${currentQuickSettings.globalApproach === 'sequential-3stage' ? 'selected' : ''}>🧠 Deep Sequential 3-Stage Pipeline</option>
+        </select>
+      </div>
+
+      <!-- 5. Auto-Select on Webpage DOM -->
+      <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 7px;">
+        <input type="checkbox" id="hs-setting-autoselect" ${currentQuickSettings.autoSelect ? 'checked' : ''} style="cursor: pointer; width: 14px; height: 14px;">
+        <label for="hs-setting-autoselect" style="font-size: 11.5px; cursor: pointer; color: ${inp.cardValue}; user-select: none;">Auto-click detected MCQ/MSQ option on page</label>
+      </div>
+
+      <!-- Actions -->
+      <div style="display: flex; gap: 6px; margin-top: 12px; align-items: center;">
+        <button id="hs-setting-save-btn" style="flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">💾 Save Settings</button>
+        <button id="hs-setting-resolve-btn" style="flex: 1; padding: 6px 10px; font-size: 11.5px; font-weight: 600; border-radius: 6px; border: 1px solid ${inp.buttonBorder}; background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer; font-family: inherit;">🔄 Save & Re-Solve</button>
+      </div>
+      <div id="hs-setting-status" style="font-size: 10.5px; color: ${inp.badgeSuccess}; margin-top: 6px; text-align: center; min-height: 16px;"></div>
     </div>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Playfair+Display:ital,wght@1,600;1,700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
       #hs-answer-overlay::-webkit-scrollbar { width: 4px !important; background: transparent !important; }
       #hs-answer-overlay::-webkit-scrollbar-thumb { background: ${colorWithAlpha(inp.overlayTextMuted, 0.4)} !important; border-radius: 4px !important; }
       #hs-answer-overlay::-webkit-scrollbar-thumb:hover { background: ${colorWithAlpha(inp.overlayTextMuted, 0.7)} !important; }
-      #hs-copy:hover, #hs-close:hover { opacity: 1 !important; }
-      #hs-copy:active, #hs-close:active { transform: scale(0.88); }
+      #hs-settings-btn:hover, #hs-copy:hover, #hs-close:hover { opacity: 1 !important; }
+      #hs-settings-btn:active, #hs-copy:active, #hs-close:active { transform: scale(0.88); }
       #hs-expand-step:hover { filter: brightness(1.08); }
       #hs-expand-step:active { transform: scale(0.96); }
     </style>
@@ -3516,6 +3667,237 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
           }, 1500);
         }
       });
+    };
+  }
+
+  // ── Top-Anchored Search Input & Execution ──
+  const searchInput = box.querySelector("#hs-search-input");
+  const searchSubmit = box.querySelector("#hs-search-submit");
+
+  const runSearch = () => {
+    const query = searchInput ? searchInput.value.trim() : "";
+    if (!query) return;
+    const activeCrop = lastCroppedBase64 || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hs_last_crop") : null);
+    if (!activeCrop) {
+      showAnswerOverlay("⚠️ No image crop found in memory to combine with this query. Please capture an image first.");
+      return;
+    }
+    showLoadingOverlay("Refining with README / custom query…");
+    callAPI(activeCrop, { customQuery: query });
+  };
+
+  if (searchInput) {
+    searchInput.addEventListener("input", () => {
+      searchInput.style.height = "auto";
+      searchInput.style.height = `${Math.min(searchInput.scrollHeight, 120)}px`;
+    });
+    searchInput.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        runSearch();
+      }
+    });
+    searchInput.addEventListener("keyup", (e) => e.stopPropagation());
+    searchInput.addEventListener("keypress", (e) => e.stopPropagation());
+  }
+
+  if (searchSubmit) {
+    searchSubmit.onclick = (e) => {
+      e.stopPropagation();
+      runSearch();
+    };
+  }
+
+  // ── Quick Settings Controls & Dynamic Context Card ──
+  const settingsBtn = box.querySelector("#hs-settings-btn");
+  const backBtn = box.querySelector("#hs-btn-back-solution");
+  const solView = box.querySelector("#hs-solution-view");
+  const setView = box.querySelector("#hs-settings-view");
+  const subjSelect = box.querySelector("#hs-setting-subject");
+  const approachSelect = box.querySelector("#hs-setting-approach");
+  const autoselectCb = box.querySelector("#hs-setting-autoselect");
+  const stylePills = box.querySelectorAll(".hs-setting-style-pill");
+
+  const renderDynamicSubjectCard = (subjVal) => {
+    const card = box.querySelector("#hs-dynamic-subject-card");
+    if (!card) return;
+    if (subjVal === "dsa") {
+      card.style.display = "block";
+      card.innerHTML = `
+        <div style="font-size: 11px; font-weight: 700; color: ${inp.cardLabel}; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px;">⚡ DSA Configuration</div>
+        <div style="margin-bottom: 6px;">
+          <label style="display: block; font-size: 10px; color: ${inp.overlayTextMuted}; margin-bottom: 2px;">Target Language</label>
+          <select id="hs-dsa-lang" style="width: 100%; padding: 3px 6px; font-size: 11px; border-radius: 4px; background: ${colorWithAlpha(inp.cardBg, 0.9)}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none;">
+            <option value="Python" ${currentQuickSettings.dsaLanguage === "Python" ? "selected" : ""}>Python</option>
+            <option value="C++" ${currentQuickSettings.dsaLanguage === "C++" ? "selected" : ""}>C++</option>
+            <option value="Java" ${currentQuickSettings.dsaLanguage === "Java" ? "selected" : ""}>Java</option>
+            <option value="JavaScript" ${currentQuickSettings.dsaLanguage === "JavaScript" ? "selected" : ""}>JavaScript</option>
+            <option value="TypeScript" ${currentQuickSettings.dsaLanguage === "TypeScript" ? "selected" : ""}>TypeScript</option>
+            <option value="Go" ${currentQuickSettings.dsaLanguage === "Go" ? "selected" : ""}>Go</option>
+            <option value="Rust" ${currentQuickSettings.dsaLanguage === "Rust" ? "selected" : ""}>Rust</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 6px;">
+          <label style="display: block; font-size: 10px; color: ${inp.overlayTextMuted}; margin-bottom: 2px;">Optimization Target</label>
+          <select id="hs-dsa-opt" style="width: 100%; padding: 3px 6px; font-size: 11px; border-radius: 4px; background: ${colorWithAlpha(inp.cardBg, 0.9)}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none;">
+            <option value="Optimal Time & Space" ${currentQuickSettings.dsaOptimize === "Optimal Time & Space" ? "selected" : ""}>Optimal Time & Space</option>
+            <option value="Minimal Code / Clean" ${currentQuickSettings.dsaOptimize === "Minimal Code / Clean" ? "selected" : ""}>Minimal Code / Clean</option>
+            <option value="Verbose with Assertions" ${currentQuickSettings.dsaOptimize === "Verbose with Assertions" ? "selected" : ""}>Verbose with Assertions</option>
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 10px; color: ${inp.overlayTextMuted}; margin-bottom: 2px;">Solution Format</label>
+          <select id="hs-dsa-fmt" style="width: 100%; padding: 3px 6px; font-size: 11px; border-radius: 4px; background: ${colorWithAlpha(inp.cardBg, 0.9)}; color: ${inp.cardValue}; border: 1px solid ${inp.cardBorder}; outline: none;">
+            <option value="Function Solution" ${currentQuickSettings.dsaFormat === "Function Solution" ? "selected" : ""}>Function Solution (LeetCode / Platform)</option>
+            <option value="Complete Executable Script" ${currentQuickSettings.dsaFormat === "Complete Executable Script" ? "selected" : ""}>Complete Executable Script (stdin/stdout)</option>
+          </select>
+        </div>
+      `;
+      card.querySelectorAll("select").forEach(sel => {
+        sel.addEventListener("keydown", (e) => e.stopPropagation());
+      });
+    } else if (subjVal === "backend-dev") {
+      card.style.display = "block";
+      card.innerHTML = `
+        <div style="font-size: 11px; font-weight: 700; color: ${inp.cardLabel}; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.4px;">📁 Backend Architecture Mode</div>
+        <div style="font-size: 10.5px; line-height: 1.4; color: ${inp.cardValue};">
+          All databases, models, schemas, and framework choices are extracted <strong>directly from your README context or search input</strong>.
+          Outputs production-ready files viewable under <strong>📑 Files</strong> or <strong>💻 Terminal Script</strong>.
+        </div>
+      `;
+    } else {
+      card.style.display = "none";
+      card.innerHTML = "";
+    }
+  };
+
+  const toggleSettings = (show) => {
+    if (show) {
+      if (solView) solView.style.display = "none";
+      if (setView) setView.style.display = "block";
+      if (settingsBtn) {
+        settingsBtn.style.opacity = "1";
+        settingsBtn.style.color = inp.buttonText || "#3b82f6";
+      }
+      renderDynamicSubjectCard(subjSelect ? subjSelect.value : currentQuickSettings.subject);
+    } else {
+      if (solView) solView.style.display = "block";
+      if (setView) setView.style.display = "none";
+      if (settingsBtn) {
+        settingsBtn.style.opacity = currentAnswerStealthMode ? "0.6" : "0.75";
+        settingsBtn.style.color = inp.overlayTextMuted;
+      }
+    }
+  };
+
+  if (settingsBtn) {
+    settingsBtn.onclick = (e) => {
+      e.stopPropagation();
+      const isOpen = setView && setView.style.display !== "none";
+      toggleSettings(!isOpen);
+    };
+  }
+
+  if (backBtn) {
+    backBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleSettings(false);
+    };
+  }
+
+  let selectedStyle = answerStyle || currentQuickSettings.style;
+  stylePills.forEach(pill => {
+    pill.onclick = (e) => {
+      e.stopPropagation();
+      selectedStyle = pill.dataset.style;
+      stylePills.forEach(p => {
+        const isActive = p.dataset.style === selectedStyle;
+        p.style.background = isActive ? inp.buttonBg : "transparent";
+        p.style.color = isActive ? inp.buttonText : inp.overlayTextMuted;
+      });
+    };
+  });
+
+  if (subjSelect) {
+    subjSelect.addEventListener("change", () => {
+      renderDynamicSubjectCard(subjSelect.value);
+    });
+    subjSelect.addEventListener("keydown", (e) => e.stopPropagation());
+  }
+  if (approachSelect) {
+    approachSelect.addEventListener("keydown", (e) => e.stopPropagation());
+  }
+
+  const saveCurrentSettings = async () => {
+    const newSubject = subjSelect ? subjSelect.value : currentQuickSettings.subject;
+    const newApproach = approachSelect ? approachSelect.value : currentQuickSettings.globalApproach;
+    const newAutoSelect = autoselectCb ? autoselectCb.checked : currentQuickSettings.autoSelect;
+    const newStyle = selectedStyle || currentQuickSettings.style;
+
+    const dsaLangEl = box.querySelector("#hs-dsa-lang");
+    const dsaOptEl = box.querySelector("#hs-dsa-opt");
+    const dsaFmtEl = box.querySelector("#hs-dsa-fmt");
+
+    const newDsaLang = dsaLangEl ? dsaLangEl.value : currentQuickSettings.dsaLanguage;
+    const newDsaOpt = dsaOptEl ? dsaOptEl.value : currentQuickSettings.dsaOptimize;
+    const newDsaFmt = dsaFmtEl ? dsaFmtEl.value : currentQuickSettings.dsaFormat;
+
+    currentQuickSettings = {
+      style: newStyle,
+      subject: newSubject,
+      globalApproach: newApproach,
+      autoSelect: newAutoSelect,
+      dsaLanguage: newDsaLang,
+      dsaOptimize: newDsaOpt,
+      dsaFormat: newDsaFmt
+    };
+
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage?.local) {
+        await chrome.storage.local.set({
+          style: newStyle,
+          subject: newSubject,
+          globalApproach: newApproach,
+          autoSelect: newAutoSelect,
+          dsaLanguage: newDsaLang,
+          dsaOptimize: newDsaOpt,
+          dsaFormat: newDsaFmt
+        });
+      }
+      const statusEl = box.querySelector("#hs-setting-status");
+      if (statusEl) {
+        statusEl.textContent = "✅ Settings saved successfully!";
+        setTimeout(() => { if (statusEl) statusEl.textContent = ""; }, 2200);
+      }
+      return true;
+    } catch (err) {
+      console.warn("[hs] Failed to save quick settings:", err);
+      return false;
+    }
+  };
+
+  const saveBtn = box.querySelector("#hs-setting-save-btn");
+  if (saveBtn) {
+    saveBtn.onclick = async (e) => {
+      e.stopPropagation();
+      await saveCurrentSettings();
+    };
+  }
+
+  const resolveBtn = box.querySelector("#hs-setting-resolve-btn");
+  if (resolveBtn) {
+    resolveBtn.onclick = async (e) => {
+      e.stopPropagation();
+      await saveCurrentSettings();
+      toggleSettings(false);
+      const activeCrop = lastCroppedBase64 || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("hs_last_crop") : null);
+      if (!activeCrop) {
+        showAnswerOverlay("⚠️ No image crop found to re-solve.");
+        return;
+      }
+      showLoadingOverlay("Re-solving with updated settings…");
+      callAPI(activeCrop);
     };
   }
 }
