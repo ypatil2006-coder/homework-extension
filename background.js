@@ -166,7 +166,8 @@ chrome.runtime.onConnect.addListener((port) => {
         let ttft = 0;
         let finishReason = "";
 
-        while (true) {
+        let streamDone = false;
+        while (!streamDone) {
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -178,15 +179,15 @@ chrome.runtime.onConnect.addListener((port) => {
             const p = line.trim();
             if (!p.startsWith("data:")) continue;
             const d = p.slice(5).trim();
-            if (d === "[DONE]") continue;
+            if (d === "[DONE]") {
+              streamDone = true;
+              break;
+            }
 
             try {
               const j = JSON.parse(d);
               const choice = j.choices?.[0];
-              delta = choice?.delta?.content || "";
-              if (!delta && (choice?.delta?.reasoning || choice?.delta?.reasoning_content)) {
-                delta = choice?.delta?.reasoning || choice?.delta?.reasoning_content;
-              }
+              const delta = choice?.delta?.content || choice?.delta?.reasoning || choice?.delta?.reasoning_content || "";
               if (choice?.finish_reason) {
                 finishReason = choice.finish_reason;
               }

@@ -2649,27 +2649,68 @@ function updateStreamingOverlay(partialText, style) {
     applyOverlayPosition(box);
   }
 
+  const hasHistory = answerHistory && answerHistory.length > 0;
+  const backBtnHtml = hasHistory ? `
+    <button id="hs-stream-back-btn" title="Back to Previous Answer" style="
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 7px; font-size: 10px; font-weight: 600; font-family: inherit;
+      border-radius: 4px; border: 1px solid ${inp.cardBorder};
+      background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer;
+      margin-right: 4px; transition: opacity 0.12s ease;
+    ">← Back</button>
+  ` : "";
+
   box.innerHTML = `
-    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 40px; height: 26px; cursor: grab; z-index: 5; display: ${currentAnswerDragBar ? 'block' : 'none'};"></div>
-    <button id="hs-close" title="Close" style="
-      position: absolute; top: 2px; right: 2px;
-      width: 34px; height: 34px;
-      background: transparent; color: ${inp.overlayTextMuted}; border: none;
-      cursor: pointer; font-size: 13px; font-weight: 600; line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-      padding: 0; z-index: 10; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'};
-      transition: opacity 0.12s ease, transform 0.1s ease;
-    ">✕</button>
-    <div style="padding-top: 4px; padding-right: 28px; white-space: pre-wrap; line-height: 1.45; font-size: ${currentAnswerFontSize}px; color: ${inp.overlayTextPrimary}; user-select: text; -webkit-user-select: text; cursor: text;">${liveBody}</div>
+    <div id="hs-popup-header" style="
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px; padding-bottom: 4px;
+      border-bottom: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)};
+      user-select: none; gap: 6px;
+    ">
+      <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0;">
+        <div id="hs-drag-bar" style="
+          display: ${currentAnswerDragBar ? 'flex' : 'none'};
+          align-items: center; gap: 4px; cursor: grab; padding: 2px 6px; border-radius: 4px;
+          background: ${colorWithAlpha(inp.cardBg, 0.6)}; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.4)};
+          font-size: 10px; font-weight: 700; color: ${inp.cardLabel}; letter-spacing: 0.3px;
+        ">
+          <span style="opacity: 0.6; font-size: 11px;">⠿</span>
+          <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${style === 'detailed' ? '💻 Generating Code Solution…' : '⚡ Solving…'}</span>
+        </div>
+        ${backBtnHtml}
+      </div>
+      <div style="display: flex; align-items: center; gap: 3px; flex-shrink: 0;">
+        <button id="hs-close" title="Close" style="
+          width: 24px; height: 24px;
+          background: transparent; color: ${inp.overlayTextMuted}; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)};
+          border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 700;
+          display: flex; align-items: center; justify-content: center;
+          padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'};
+          transition: opacity 0.12s ease, transform 0.1s ease;
+        ">✕</button>
+      </div>
+    </div>
+    <div style="padding-top: 2px; white-space: pre-wrap; line-height: 1.45; font-size: ${currentAnswerFontSize}px; color: ${inp.overlayTextPrimary}; user-select: text; -webkit-user-select: text; cursor: text;">${liveBody}</div>
     <style>
       #hs-answer-overlay::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
-      #hs-close:hover { opacity: 1 !important; }
-      #hs-close:active { transform: scale(0.88); }
+      #hs-close:hover, #hs-stream-back-btn:hover { opacity: 1 !important; }
+      #hs-close:active, #hs-stream-back-btn:active { transform: scale(0.92); }
     </style>
   `;
 
   makeDraggable(box);
-  document.getElementById("hs-close").onclick = removeExistingOverlay;
+  const streamCloseBtn = document.getElementById("hs-close");
+  if (streamCloseBtn) streamCloseBtn.onclick = removeExistingOverlay;
+  const streamBackBtn = document.getElementById("hs-stream-back-btn");
+  if (streamBackBtn) {
+    streamBackBtn.onclick = (e) => {
+      e.stopPropagation();
+      const prev = answerHistory.pop();
+      if (prev) {
+        showAnswerOverlay(prev.answer, prev.options);
+      }
+    };
+  }
 }
 
 // ── Discreet Floating Dot Engine ───────────────────
@@ -2987,18 +3028,33 @@ function showLoadingOverlay(statusText = "Solving question...") {
     transform: translateZ(0);
     contain: layout style;
   `;
+  const hasHistory = answerHistory && answerHistory.length > 0;
+  const backBtnHtml = hasHistory ? `
+    <button id="hs-loading-back-btn" title="Back to Previous Answer" style="
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 7px; font-size: 10px; font-weight: 600; font-family: inherit;
+      border-radius: 4px; border: 1px solid ${inp.cardBorder};
+      background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer;
+      margin-right: 4px; transition: opacity 0.12s ease;
+    ">← Back</button>
+  ` : "";
+
   box.innerHTML = `
-    <div id="hs-drag-bar" style="position: absolute; top: 0; left: 0; right: 40px; height: 26px; cursor: grab; z-index: 5; display: ${currentAnswerDragBar ? 'block' : 'none'};"></div>
-    <button id="hs-close" title="Close" style="
-      position: absolute; top: 2px; right: 2px;
-      width: 34px; height: 34px;
-      background: transparent; color: ${inp.overlayTextMuted}; border: none;
-      cursor: pointer; font-size: 13px; font-weight: 600; line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-      padding: 0; z-index: 10; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'};
-      transition: opacity 0.12s ease, transform 0.1s ease;
-    ">✕</button>
-    <div style="display: flex; align-items: center; gap: 9px; padding-right: 28px; user-select: text; -webkit-user-select: text; cursor: text;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)};">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <div id="hs-drag-bar" style="display: ${currentAnswerDragBar ? 'block' : 'none'}; cursor: grab; font-size: 10px; font-weight: 700; color: ${inp.cardLabel};">⠿ Drag</div>
+        ${backBtnHtml}
+      </div>
+      <button id="hs-close" title="Close" style="
+        width: 24px; height: 24px;
+        background: transparent; color: ${inp.overlayTextMuted}; border: 1px solid ${colorWithAlpha(inp.cardBorder, 0.45)};
+        border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0; opacity: ${currentAnswerStealthMode ? '0.6' : '0.75'};
+        transition: opacity 0.12s ease, transform 0.1s ease;
+      ">✕</button>
+    </div>
+    <div style="display: flex; align-items: center; gap: 9px; padding-right: 4px; user-select: text; -webkit-user-select: text; cursor: text;">
       <div style="width: 14px; height: 14px; border: 2px solid ${inp.spinnerColor}; border-top-color: transparent; border-radius: 50%; animation: hsSpin 0.8s linear infinite; flex-shrink: 0;"></div>
       <span style="font-size: ${currentAnswerFontSize}px; font-weight: 600; color: ${inp.overlayTextPrimary};">${escapeHtml(statusText)}</span>
     </div>
@@ -3006,14 +3062,25 @@ function showLoadingOverlay(statusText = "Solving question...") {
       @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Playfair+Display:ital,wght@1,600;1,700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
       @keyframes hsSpin { to { transform: rotate(360deg); } }
       #hs-answer-overlay::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
-      #hs-close:hover { opacity: 1 !important; }
-      #hs-close:active { transform: scale(0.88); }
+      #hs-close:hover, #hs-loading-back-btn:hover { opacity: 1 !important; }
+      #hs-close:active, #hs-loading-back-btn:active { transform: scale(0.88); }
     </style>
   `;
   document.body.appendChild(box);
   applyOverlayPosition(box);
   makeDraggable(box);
-  document.getElementById("hs-close").onclick = removeExistingOverlay;
+  const loadingCloseBtn = document.getElementById("hs-close");
+  if (loadingCloseBtn) loadingCloseBtn.onclick = removeExistingOverlay;
+  const loadingBackBtn = document.getElementById("hs-loading-back-btn");
+  if (loadingBackBtn) {
+    loadingBackBtn.onclick = (e) => {
+      e.stopPropagation();
+      const prev = answerHistory.pop();
+      if (prev) {
+        showAnswerOverlay(prev.answer, prev.options);
+      }
+    };
+  }
 }
 
 // ── Auto-select MCQ / MSQ option on webpage DOM ───────────
@@ -3486,6 +3553,39 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
         </div>
       `;
     }
+  } else if (answerHistory.length > 0) {
+    if (currentAnswerStealthMode) {
+      expandStepBtnHtml = `
+        <div style="margin-top: 6px; padding-top: 4px;">
+          <button id="hs-btn-bottom-back-history" style="
+            background: transparent; color: ${inp.cardLabel || inp.overlayTextPrimary || '#111111'};
+            border: 1px dashed ${colorWithAlpha(inp.cardLabel || inp.overlayTextMuted, 0.45)}; border-radius: 4px; padding: 2px 6px; font-size: 11px;
+            cursor: pointer; opacity: 0.85; font-family: inherit;
+          ">[← Back to Previous Answer]</button>
+        </div>
+      `;
+    } else {
+      expandStepBtnHtml = `
+        <div style="margin-top: 10px; padding-top: 7px; border-top: 1px dashed ${inp.overlayBorder};">
+          <button id="hs-btn-bottom-back-history" style="
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 6px 13px;
+            background: ${inp.buttonBg};
+            color: ${inp.buttonText};
+            border: 1px solid ${inp.buttonBorder};
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: all 0.12s ease;
+          ">
+            <span>←</span> Back to Previous Solution
+          </button>
+        </div>
+      `;
+    }
   }
 
   const truncNote = (truncated && !currentAnswerStealthMode)
@@ -3519,11 +3619,11 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
           <span id="hs-header-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${multiFiles.length > 0 ? '📁 Backend Suite' : answerStyle === 'detailed' ? '💻 Code Solution' : '⚡ Homework Solver'}</span>
         </div>
         <button id="hs-header-back-btn" title="Back" style="
-          display: none; align-items: center; gap: 3px;
+          display: ${answerHistory.length > 0 ? 'inline-flex' : 'none'}; align-items: center; gap: 3px;
           padding: 2px 8px; font-size: 10.5px; font-weight: 600; font-family: inherit;
           border-radius: 4px; border: 1px solid ${inp.cardBorder};
           background: ${inp.buttonBg}; color: ${inp.buttonText}; cursor: pointer;
-        ">← Back</button>
+        ">← Previous Answer</button>
       </div>
 
       <div id="hs-header-controls" style="display: flex; align-items: center; gap: 3px; flex-shrink: 0;">
@@ -3706,10 +3806,21 @@ function showAnswerOverlay(answer, { style, truncated, autoSelect, meta, isDeriv
       if (!cropToUse) return;
       answerHistory.push({
         answer: cleanAnswer,
-        options: { style: answerStyle, truncated, autoSelect, meta, isDerivation }
+        options: { style: answerStyle, truncated, autoSelect, meta, isDerivation: false }
       });
       showLoadingOverlay("Generating pure code solution...");
       callAPI(cropToUse, { forceStyle: "detailed" });
+    };
+  }
+
+  const bottomHistBackBtn = box.querySelector("#hs-btn-bottom-back-history");
+  if (bottomHistBackBtn) {
+    bottomHistBackBtn.onclick = (e) => {
+      e.stopPropagation();
+      const prev = answerHistory.pop();
+      if (prev) {
+        showAnswerOverlay(prev.answer, prev.options);
+      }
     };
   }
 
